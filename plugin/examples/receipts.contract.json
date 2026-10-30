@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "goal": "Add input validation to the signup form without touching the build setup",
+  "write": [
+    "src/**",
+    "app/**",
+    "docs/**",
+    "plugin/**",
+    "README.md"
+  ],
+  "protect": [
+    "**/.env",
+    "**/.env.*",
+    "!**/.env.example",
+    "**/*.pem",
+    "**/*.key",
+    "**/id_rsa*",
+    "**/id_ed25519*"
+  ],
+  "shell": {
+    "allow": [
+      "npm test",
+      "npm run typecheck",
+      "npm run build",
+      "git status",
+      "git diff*",
+      "git log*"
+    ],
+    "otherwise": "ask"
+  },
+  "web": "allow",
+  "mcp": "ask",
+  "checks": [
+    {
+      "id": "typecheck",
+      "description": "TypeScript compiles",
+      "command": "npm run typecheck",
+      "timeoutSeconds": 300
+    },
+    {
+      "id": "tests",
+      "description": "Unit tests pass",
+      "command": "npm test",
+      "timeoutSeconds": 300
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "enock-labs",
+  "owner": {
+    "name": "Enock Labs"
+  },
+  "plugins": [
+    {
+      "name": "work-receipts",
+      "source": "./plugin",
+      "description": "Tamper-evident tool-call log, session scope enforcement, and verified Work Receipts for Claude Code."
+    }
+  ]
+}

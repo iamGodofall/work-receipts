@@ -1,0 +1,9 @@
+{
+  "name": "work-receipts",
+  "version": "0.1.0",
+  "description": "Work Receipts by Enock Labs: enforces a scope you write on every Claude Code tool call, keeps a tamper-evident log, verifies scope with git, and produces signed, verifiable receipts.",
+  "author": {
+    "name": "Enock Labs"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0"
+}

@@ -1,0 +1,23 @@
+{
+  "name": "work-receipts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Work Receipts for Claude Code: enforce a scope you write, keep a tamper-evident log, and produce signed, verifiable receipts.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Enock Labs",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build:plugin": "esbuild src/recorder/bin/hook.ts src/recorder/bin/cli.ts --bundle --minify --platform=node --target=node20 --format=cjs --outdir=plugin/dist --log-level=warning",
+    "check": "npm run typecheck && npm test && npm run build:plugin"
+  },
+  "dependencies": {
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
