@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { sha256Object } from "../core/integrity";
 import { classifyToolCall } from "./classify";
 import { CONTRACT_FILE, loadContract } from "./contract";
-import { captureBaseline } from "./git";
+import { captureBaseline, searchableFiles } from "./git";
+import { matchesPatternList } from "./glob";
 import { evaluateSessionAction, evaluateWithInvalidContract, type SessionPolicyResult } from "./policy";
 import { appendEvent, redactPreview, type NewEvent } from "./store";
 
@@ -147,6 +148,11 @@ export function handleHook(mode: HookMode, input: HookInput, env: Record<string,
   }
 
   const loaded = loadContract(projectDir);
+  if (loaded.status === "loaded" && toolName === "Grep" && action.category === "read" && !action.outsideProject) {
+    // A content search over a folder reads every non-ignored file in it.
+    const exposed = searchExposure(projectDir, action.target, loaded.contract.protect);
+    if (exposed) action.exposesProtected = exposed;
+  }
   const result: SessionPolicyResult = loaded.status === "invalid"
     ? evaluateWithInvalidContract(action, loaded.message)
     : evaluateSessionAction(loaded.status === "loaded" ? loaded.contract : null, action);
@@ -213,4 +219,16 @@ export function main(argv: string[]): void {
       process.stdout.write(JSON.stringify(output("deny", "Recorder failure (" + message + ").")));
     }
   }
+}
+
+/** The first protected file a content search over `target` would read, if any. */
+export function searchExposure(projectDir: string, target: string, protect: readonly string[]): string | null {
+  let isDirectory = false;
+  try {
+    isDirectory = statSync(join(projectDir, target)).isDirectory();
+  } catch {
+    return null;
+  }
+  if (!isDirectory) return null;
+  return searchableFiles(projectDir, target).find((path) => matchesPatternList(path, protect)) ?? null;
 }

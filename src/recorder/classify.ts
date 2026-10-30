@@ -15,6 +15,11 @@ export type ObservedAction = {
   outsideProject: boolean;
   /** Set when the path uses a form that can alias another file. Always denied. */
   suspicious?: string;
+  /**
+   * For content searches over a directory: a protected file inside it that the
+   * search would read (one that is not gitignored). Set by the hook, not here.
+   */
+  exposesProtected?: string;
   /** Shell command text, only for the shell category. */
   command?: string;
 };

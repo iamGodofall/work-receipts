@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONTRACT_FILE, RECEIPTS_DIR } from "./contract";
 
@@ -82,4 +82,39 @@ export function changedSince(projectDir: string, baseline: GitBaseline | null): 
     changed: changed.filter((path) => path !== CONTRACT_FILE),
     contractChanged: changed.includes(CONTRACT_FILE),
   };
+}
+
+const SEARCH_SCAN_LIMIT = 5000;
+const SKIP_DIRS = new Set([".git", "node_modules", RECEIPTS_DIR]);
+
+/**
+ * Project-relative files under `relativeDir` that a content search would read.
+ * In a git repository that is every file not excluded by .gitignore (Claude
+ * Code's Grep skips ignored files); elsewhere a bounded walk of the folder.
+ */
+export function searchableFiles(projectDir: string, relativeDir: string): string[] {
+  const listed = git(projectDir, ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", relativeDir === "." ? "." : relativeDir]);
+  if (listed !== null) return splitNul(listed);
+
+  const found: string[] = [];
+  const walk = (rel: string) => {
+    if (found.length >= SEARCH_SCAN_LIMIT) return;
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = readdirSync(join(projectDir, rel), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const child = rel === "." ? entry.name : rel + "/" + entry.name;
+      if (entry.isDirectory()) {
+        if (!SKIP_DIRS.has(entry.name)) walk(child);
+      } else {
+        found.push(child);
+      }
+      if (found.length >= SEARCH_SCAN_LIMIT) return;
+    }
+  };
+  walk(relativeDir);
+  return found;
 }

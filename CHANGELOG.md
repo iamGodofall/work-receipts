@@ -18,7 +18,8 @@ First release candidate of the Claude Code plugin.
 - Local Work Receipts viewer in the web app (/receipts) that re-verifies every receipt on load.
 - Starter contract pre-approves read-only commands (ls, pwd, git status/diff/log).
 - Receipts show a step-by-step timeline of every tool call: done, approved, blocked (with reason), failed, or not run, with subagent attribution.
-- Adversarial benchmark (npm run bench): 18/18 scope attacks stopped against the shipped plugin, 3/3 benign sessions verified with no interruptions; results in docs/BENCHMARK.md.
+- Adversarial benchmark (npm run bench): 19/19 scope attacks stopped against the shipped plugin, 0 known gaps, 4/4 benign sessions verified with no interruptions; results in docs/BENCHMARK.md.
+- Content searches are denied when they would read a protected file that is not gitignored (closes the last benchmark gap without affecting gitignored secrets).
 - Shell policy denies commands naming protected files, download-and-execute, string evaluation, and root or home wipes; unrecognised tools carrying a command get the shell policy.
 - Pull request summaries: every receipt writes receipt.pr.md, and /receipt-pr prints a paste-ready verdict block.
 - Shareable receipt redesigned: dark brand theme, animated verdict stamp, floating mascot, staggered timeline; still script-free and self-contained.

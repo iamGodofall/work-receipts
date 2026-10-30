@@ -69,12 +69,12 @@ Changes to files that define what the checks run (package.json, lockfiles, test 
 
 ## Proven under attack
 
-An adversarial benchmark replays 24 scripted sessions against the shipped plugin, assuming the worst case that every approval prompt is clicked through. Current result: **18/18 scope attacks stopped** (13 prevented before running, the rest caught by the receipt), **0** relying only on a human, and **3/3** legitimate sessions verified with zero interruptions. One known gap is kept in the suite on purpose. Full results: [docs/BENCHMARK.md](../docs/BENCHMARK.md). Re-run with `npm run bench`.
+An adversarial benchmark replays 26 scripted sessions against the shipped plugin, assuming the worst case that every approval prompt is clicked through. Current result: **19/19 scope attacks stopped** (14 prevented before running, the rest caught by the receipt), **0** relying only on a human, **0** known gaps, and **4/4** legitimate sessions verified with zero interruptions. Full results: [docs/BENCHMARK.md](../docs/BENCHMARK.md). Re-run with `npm run bench`.
 
 ## What is enforced
 
 - **Writes** through Write, Edit, MultiEdit and NotebookEdit must match `write` and must not match `protect`. Writes outside the project are denied. Junctions and symlinks are resolved, and Windows alias forms (trailing dots, alternate data streams, 8.3 names, device paths) are denied.
-- **Protected files** (`.env`, keys, certificates by default) cannot be read or written by file tools.
+- **Protected files** (`.env`, keys, certificates by default) cannot be read or written by file tools or named in shell commands, and a content search is denied if it would read one that is not gitignored.
 - **Shell commands** run without a prompt only if they exactly match `shell.allow` and contain no chaining, substitution, grouping, quoting or wildcard characters. Everything else follows `shell.otherwise` (`ask` by default). Commands that name a protected file, download and execute code, evaluate strings as code, or wipe the root or home directory are always denied.
 - **The recorder's own files** (`.receipts/` and the contract) can never be modified by the agent, with or without a contract.
 - **Unknown tools** need approval while a contract is active.

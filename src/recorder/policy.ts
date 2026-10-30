@@ -142,6 +142,13 @@ export function evaluateSessionAction(
       if (anyMatch(action, contract.protect)) {
         return decide("deny", "This file is protected by the session contract.");
       }
+      if (action.exposesProtected) {
+        return decide(
+          "deny",
+          "This search would read the protected file " + action.exposesProtected +
+            ". Add it to .gitignore or search a narrower folder.",
+        );
+      }
       if (action.outsideProject) return decide("ask", "Read outside the project directory.");
       return decide("allow", "Read within the project.");
 
