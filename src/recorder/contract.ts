@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 export const CONTRACT_FILE = "receipts.contract.json";
 export const RECEIPTS_DIR = ".receipts";
@@ -18,36 +18,44 @@ export const DEFAULT_PROTECT = [
 
 const DecisionSchema = z.enum(["allow", "ask", "deny"]);
 
-export const SessionCheckSchema = z.object({
-  id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
-  description: z.string().min(1).max(500),
-  command: z.string().min(1).max(1000),
-  timeoutSeconds: z.number().int().min(1).max(3600).default(300),
-}).strict();
+const text = (max: number) => z.string().check(z.minLength(1), z.maxLength(max));
+const list = <T extends z.ZodMiniType>(item: T, min: number, max: number) =>
+  z.array(item).check(z.minLength(min), z.maxLength(max));
+
+export const SessionCheckSchema = z.strictObject({
+  id: z.string().check(z.regex(/^[a-z0-9][a-z0-9-]{0,63}$/)),
+  description: text(500),
+  command: text(1000),
+  timeoutSeconds: z._default(z.int().check(z.minimum(1), z.maximum(3600)), 300),
+});
 
 /**
  * A human-authored scope for one coding session. The agent can read this file
- * but the recorder denies any tool attempt to modify it.
+ * but the recorder denies any tool attempt to modify it. Uses zod/mini because
+ * the Claude Code hook validates it on every tool call.
  */
-export const SessionContractSchema = z.object({
+export const SessionContractSchema = z.strictObject({
   schemaVersion: z.literal("1.0"),
-  goal: z.string().min(1).max(2000),
-  write: z.array(z.string().min(1).max(256)).min(1).max(100),
-  protect: z.array(z.string().min(1).max(256)).max(100).default(DEFAULT_PROTECT),
-  shell: z.object({
-    allow: z.array(z.string().min(1).max(256)).max(100).default([]),
-    otherwise: DecisionSchema.default("ask"),
-  }).strict().default({ allow: [], otherwise: "ask" }),
-  web: DecisionSchema.default("allow"),
-  mcp: DecisionSchema.default("ask"),
+  goal: text(2000),
+  write: list(text(256), 1, 100),
+  protect: z._default(list(text(256), 0, 100), DEFAULT_PROTECT),
+  shell: z._default(
+    z.strictObject({
+      allow: z._default(list(text(256), 0, 100), []),
+      otherwise: z._default(DecisionSchema, "ask"),
+    }),
+    { allow: [], otherwise: "ask" as const },
+  ),
+  web: z._default(DecisionSchema, "allow"),
+  mcp: z._default(DecisionSchema, "ask"),
   /**
    * Paths the human excludes from working-tree scope verification, such as
    * logs written by trusted tools. Ignored changes are still listed on the
    * receipt; they just cannot fail it.
    */
-  ignore: z.array(z.string().min(1).max(256)).max(50).default([]),
-  checks: z.array(SessionCheckSchema).min(1).max(20),
-}).strict();
+  ignore: z._default(list(text(256), 0, 50), []),
+  checks: list(SessionCheckSchema, 1, 20),
+});
 
 export type SessionContract = z.infer<typeof SessionContractSchema>;
 export type SessionCheck = z.infer<typeof SessionCheckSchema>;

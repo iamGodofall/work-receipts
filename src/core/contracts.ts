@@ -1,17 +1,7 @@
 import { z } from "zod";
+import { ACTION_KINDS } from "./action-kind";
 
-export const ActionKindSchema = z.enum([
-  "read",
-  "create_artifact",
-  "write",
-  "send",
-  "purchase",
-  "delete",
-  "publish",
-  "deploy",
-  "permission_change",
-  "execute_code",
-]);
+export const ActionKindSchema = z.enum(ACTION_KINDS);
 
 export const AutonomyTierSchema = z.enum(["L0", "L1", "L2", "L3", "L4"]);
 

@@ -17,5 +17,9 @@ First release candidate of the Claude Code plugin.
 - Receipts record their recorder version; receipts from another version are reported as needing regeneration, never as tampered.
 - Local Work Receipts viewer in the web app (/receipts) that re-verifies every receipt on load.
 - Starter contract pre-approves read-only commands (ls, pwd, git status/diff/log).
+- Receipts show a step-by-step timeline of every tool call: done, approved, blocked (with reason), failed, or not run, with subagent attribution.
+- Pull request summaries: every receipt writes receipt.pr.md, and /receipt-pr prints a paste-ready verdict block.
+- Shareable receipt redesigned: dark brand theme, animated verdict stamp, floating mascot, staggered timeline; still script-free and self-contained.
+- Hook overhead cut 58% (48 ms to 20 ms per call; bundle 476 KB to 44 KB) by moving hook-path validation to zod/mini.
 
 Validated in a live Claude Code session on 2026-10-30: hooks fired, scope context was honoured, and git verification caught out-of-scope files written by a third-party hook.

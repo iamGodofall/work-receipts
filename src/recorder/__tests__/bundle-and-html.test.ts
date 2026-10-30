@@ -131,3 +131,27 @@ describe("recorder versions", () => {
     expect(result.problems[0]).toMatch(/recorder 0\.0\.9/);
   });
 });
+
+describe("pull request summary", () => {
+  it("states the computed verdict and numbers, with recorded text escaped", async () => {
+    const { renderPrSummary } = await import("../pr");
+    const summary = renderPrSummary(recordedBundle());
+    expect(summary).toContain("### Work Receipt: ✅ **Verified**");
+    expect(summary).toContain("Add a \\<greeting\\> module");
+    expect(summary).toContain("**1/1** checks passed");
+    expect(summary).toContain("**1** blocked");
+    expect(summary).not.toContain("<greeting>");
+  });
+
+  it("calls out out-of-scope changes", async () => {
+    const { renderPrSummary } = await import("../pr");
+    const bundle = recordedBundle();
+    const flagged = {
+      ...bundle,
+      receipt: { ...bundle.receipt, verdict: "out_of_scope" as const, workingTree: { ...bundle.receipt.workingTree, outOfScope: ["package.json"] } },
+    };
+    const summary = renderPrSummary(flagged);
+    expect(summary).toContain("⚠️ **Out of scope**");
+    expect(summary).toContain("**Changed outside the agreed scope:** `package.json`");
+  });
+});

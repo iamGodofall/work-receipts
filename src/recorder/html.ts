@@ -1,5 +1,7 @@
 import type { ReceiptBundle } from "./bundle";
+import type { AuditEvent } from "../core/audit-chain";
 import type { SessionReceipt, Verdict } from "./receipt";
+import { buildTimeline, type TimelineEntry, type TimelineStatus } from "./timeline";
 
 function esc(value: unknown): string {
   return String(value ?? "")
@@ -22,11 +24,11 @@ const MOOD: Record<Verdict, Mood> = {
 };
 
 const VERDICT_STYLE: Record<Verdict, { label: string; color: string }> = {
-  verified: { label: "Verified", color: "#1f9d6b" },
-  checks_failed: { label: "Checks failed", color: "#c2410c" },
-  out_of_scope: { label: "Out of scope", color: "#c2410c" },
-  unverified: { label: "Unverified", color: "#8a6d1d" },
-  tampered: { label: "Log integrity failure", color: "#b91c1c" },
+  verified: { label: "Verified", color: "#34d399" },
+  checks_failed: { label: "Checks failed", color: "#ff7a4d" },
+  out_of_scope: { label: "Out of scope", color: "#ff7a4d" },
+  unverified: { label: "Unverified", color: "#f5b942" },
+  tampered: { label: "Log integrity failure", color: "#f43f5e" },
 };
 
 /** Head-only mascot: navy shell, cream face, amber eyes, orange ear rings, swirl antenna. */
@@ -89,6 +91,7 @@ export function renderReceiptHtml(bundle: ReceiptBundle): string {
     "</td><td>" + (Math.round(check.durationMs / 100) / 10) + "s</td></tr>");
 
   const embedded = JSON.stringify(bundle).replace(/</g, "\\u003c");
+  const timeline = receipt.chain.valid ? renderTimeline(buildTimeline(bundle.events as AuditEvent[])) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -97,35 +100,67 @@ export function renderReceiptHtml(bundle: ReceiptBundle): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Work Receipt: ${esc(style.label)}</title>
 <style>
-:root { color-scheme: light dark; --ink:#172033; --muted:#5b6475; --line:#e3e6ec; --bg:#f7f6f3; --card:#fff; }
-@media (prefers-color-scheme: dark) { :root { --ink:#e8ebf2; --muted:#9aa3b5; --line:#2a3345; --bg:#0f1522; --card:#161e2e; } }
+:root { color-scheme: dark; --ink:#eef2f8; --muted:#93a0b8; --line:rgba(255,255,255,.09); --card:rgba(255,255,255,.045); --accent:${style.color}; }
 * { box-sizing: border-box; }
-body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
-main { max-width:860px; margin:0 auto; padding:32px 20px 64px; }
-.hero { display:flex; gap:22px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px; }
-.verdict { display:inline-block; padding:4px 12px; border-radius:999px; color:#fff; font-weight:700; letter-spacing:.02em; background:${style.color}; }
-h1 { margin:8px 0 4px; font-size:24px; } h2 { font-size:16px; margin:28px 0 10px; }
-.muted { color:var(--muted); } code { font:13px ui-monospace,SFMono-Regular,Consolas,monospace; }
-section { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:4px 18px 14px; margin-top:16px; }
-table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:7px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
-.ok { color:#1f9d6b; font-weight:600; } .bad { color:#c2410c; font-weight:600; }
-.tag { font-size:12px; border:1px solid var(--line); border-radius:6px; padding:1px 6px; margin-left:4px; color:var(--muted); }
-.tag.bad { color:#c2410c; border-color:#c2410c; } .tag.warn { color:#8a6d1d; border-color:#8a6d1d; }
-.facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:14px 0 4px; }
-.facts div { border:1px solid var(--line); border-radius:10px; padding:8px 10px; } .facts b { display:block; font-size:20px; }
-footer { margin-top:26px; font-size:13px; }
-.avatar { flex:none; border-radius:50%; padding:8px; background:radial-gradient(circle at 40% 35%, #fff8ee, #e9dcc9); }
-@media (max-width:560px) { .hero { flex-direction:column; text-align:center; } }
+body { margin:0; min-height:100vh; color:var(--ink); font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background: radial-gradient(900px 500px at 8% -10%, rgba(255,122,77,.26), transparent 60%), radial-gradient(800px 520px at 100% 0%, rgba(79,227,220,.16), transparent 60%), radial-gradient(900px 700px at 50% 115%, rgba(109,92,255,.15), transparent 60%), #0b1322; }
+main { max-width:880px; margin:0 auto; padding:34px 20px 64px; }
+.hero { position:relative; display:flex; gap:26px; align-items:center; padding:26px 28px; border-radius:24px; overflow:hidden;
+  background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid var(--line);
+  box-shadow:0 30px 70px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); animation:rise .7s cubic-bezier(.2,.8,.2,1) both; }
+.hero::before { content:""; position:absolute; width:260px; height:260px; left:-40px; top:-60px; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%); filter:blur(20px); }
+.avatar { position:relative; flex:none; border-radius:50%; padding:10px; background:radial-gradient(circle at 40% 35%, #fff8ee, #e3d3bd); box-shadow:0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent), 0 18px 40px rgba(0,0,0,.45); animation:float 4.5s ease-in-out infinite; }
+.hero-copy { position:relative; min-width:0; }
+.verdict { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:10px; color:var(--accent); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:13px;
+  border:2px solid var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); box-shadow:0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
+  transform:rotate(-3deg); animation:stamp .55s cubic-bezier(.3,1.6,.5,1) .35s both; }
+h1 { margin:12px 0 6px; font-size:clamp(22px,3.4vw,30px); line-height:1.15; letter-spacing:-.03em; color:#fff; }
+.reason { color:#c3cddf; }
+h2 { font-size:15px; margin:22px 0 12px; color:#fff; letter-spacing:-.01em; }
+.muted { color:var(--muted); } code { font:13px ui-monospace,SFMono-Regular,Consolas,monospace; color:#dfe7f5; }
+section { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:2px 20px 14px; margin-top:16px; animation:rise .6s cubic-bezier(.2,.8,.2,1) both; }
+section:nth-of-type(1) { animation-delay:.25s } section:nth-of-type(2) { animation-delay:.32s } section:nth-of-type(3) { animation-delay:.39s }
+section:nth-of-type(4) { animation-delay:.46s } section:nth-of-type(5) { animation-delay:.53s } section:nth-of-type(n+6) { animation-delay:.6s }
+table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:9px 6px; border-bottom:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-weight:600; font-size:13px; }
+.ok { color:#34d399; font-weight:700; } .bad { color:#ff7a4d; font-weight:700; }
+.tag { font-size:12px; border:1px solid var(--line); border-radius:6px; padding:1px 7px; margin-left:4px; color:var(--muted); }
+.tag.bad { color:#ff7a4d; border-color:#ff7a4d; } .tag.warn { color:#f5b942; border-color:#f5b942; }
+ul { padding-left:20px; } li { margin:4px 0; }
+.facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:16px 0 4px; }
+.facts div { padding:14px 16px; border-radius:16px; background:var(--card); border:1px solid var(--line); color:var(--muted); font-size:13px; animation:rise .6s cubic-bezier(.2,.8,.2,1) both; }
+.facts div:nth-child(1) { animation-delay:.1s } .facts div:nth-child(2) { animation-delay:.15s } .facts div:nth-child(3) { animation-delay:.2s } .facts div:nth-child(4) { animation-delay:.25s } .facts div:nth-child(5) { animation-delay:.3s }
+.facts b { display:block; font-size:28px; letter-spacing:-.04em; color:#fff; font-variant-numeric:tabular-nums; }
+footer { margin-top:28px; font-size:12.5px; line-height:1.6; }
+.brand { margin-top:10px; font-weight:700; color:#c3cddf; letter-spacing:.02em; }
+.tl { list-style:none; margin:0; padding:0 0 4px; position:relative; }
+.tl::before { content:""; position:absolute; left:6px; top:6px; bottom:10px; width:2px; background:linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.02)); }
+.tl li { position:relative; display:grid; grid-template-columns:74px 1fr auto; gap:10px; align-items:baseline; padding:8px 0 8px 24px; margin:0; animation:slide .45s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.5s + var(--n, 0) * 45ms); }
+.tl li::before { content:""; position:absolute; left:1px; top:13px; width:12px; height:12px; border-radius:50%; background:var(--dot); box-shadow:0 0 0 3px #111a2c, 0 0 12px var(--dot); }
+.tl time { color:var(--muted); font:12px ui-monospace,SFMono-Regular,Consolas,monospace; }
+.tl .what { min-width:0; overflow-wrap:anywhere; } .tl .what b { font-weight:700; margin-right:6px; color:#fff; }
+.tl .why { display:block; color:var(--muted); font-size:13px; }
+.tl .state { font-size:12px; font-weight:700; color:var(--dot); white-space:nowrap; }
+.tl .agent { font-size:11px; border:1px solid var(--line); border-radius:6px; padding:0 6px; margin-right:6px; color:var(--muted); }
+.st-done { --dot:#34d399; } .st-approved { --dot:#60a5fa; } .st-blocked { --dot:#ff7a4d; }
+.st-failed { --dot:#f43f5e; } .st-not_run { --dot:#f5b942; } .st-pending { --dot:#8a93a5; }
+.more { color:var(--muted); font-size:13px; margin:4px 0 0 24px; }
+@keyframes rise { from { opacity:0; transform:translateY(16px) scale(.985); } to { opacity:1; transform:none; } }
+@keyframes slide { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:none; } }
+@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+@keyframes stamp { 0% { opacity:0; transform:scale(2.2) rotate(-14deg); } 70% { opacity:1; transform:scale(.94) rotate(-2deg); } 100% { opacity:1; transform:scale(1) rotate(-3deg); } }
+@media (max-width:560px) { .hero { flex-direction:column; text-align:center; } .tl li { grid-template-columns:1fr; } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation:none !important; } }
+@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } * { animation:none !important; } }
 </style>
 </head>
 <body>
 <main>
 <div class="hero">
 <div class="avatar">${mascotSvg(MOOD[receipt.verdict])}</div>
-<div>
+<div class="hero-copy">
 <span class="verdict">${esc(style.label)}</span>
 <h1>${esc(receipt.contract.goal ?? "Claude Code session")}</h1>
-<div>${esc(receipt.verdictReason)}</div>
+<div class="reason">${esc(receipt.verdictReason)}</div>
 </div>
 </div>
 
@@ -144,6 +179,8 @@ ${receipt.workingTree.available ? (changed.length ? list(changed) : "<p>No files
 ${receipt.workingTree.available && receipt.workingTree.contractChanged ? "<p class=\"bad\">The session contract itself changed during this session.</p>" : ""}
 </section>
 
+${timeline}
+
 ${receipt.denied.length ? `<section><h2>Blocked actions</h2>${list(receipt.denied.map((entry) => esc(entry.tool) + " <code>" + esc(entry.target) + "</code>: " + esc(entry.reason)))}</section>` : ""}
 
 ${receipt.approvalRequests.length ? `<section><h2>Actions that required approval</h2>${list(receipt.approvalRequests.map((entry) => esc(entry.tool) + " <code>" + esc(entry.preview ?? entry.target) + "</code>: " + (entry.executed ? "ran after the approval prompt" : "did not run")))}</section>` : ""}
@@ -156,6 +193,7 @@ event log ${receipt.chain.valid ? "intact" : "FAILED"} (${receipt.chain.checkedE
 bundle <code>${esc(bundle.bundleDigest.slice(0, 16))}</code> ·
 ${bundle.signature ? "signed by key <code>" + esc(bundle.signature.fingerprint) + "</code>" : "unsigned"}<br>
 This file embeds the full evidence bundle. Re-check it with <code>node cli.js verify &lt;this file&gt;</code>. Verification proves the verdict follows from the evidence, nothing was edited afterwards, and (if signed) which key produced it. It does not prove the recorded check results were truthful.
+<div class="brand">Work Receipts by Enock Labs</div>
 </footer>
 </main>
 <script type="application/json" id="work-receipt-bundle">${embedded}</script>
@@ -168,4 +206,36 @@ This file embeds the full evidence bundle. Re-check it with <code>node cli.js ve
 export function extractBundle(text: string): unknown {
   const match = /<script type="application\/json" id="work-receipt-bundle">([\s\S]*?)<\/script>/.exec(text);
   return JSON.parse(match ? match[1] : text);
+}
+
+const TIMELINE_LIMIT = 300;
+
+const STATUS_LABEL: Record<TimelineStatus, string> = {
+  done: "done",
+  approved: "approved, ran",
+  blocked: "blocked",
+  failed: "failed",
+  not_run: "did not run",
+  pending: "no result",
+};
+
+function clock(iso: string): string {
+  return iso.slice(11, 19);
+}
+
+function renderTimeline(entries: TimelineEntry[]): string {
+  if (entries.length === 0) return "";
+  const shown = entries.slice(0, TIMELINE_LIMIT);
+  const items = shown.map((entry, index) => {
+    const agent = entry.actor.startsWith("claude-code:") ? '<span class="agent">' + esc(entry.actor.slice(12)) + "</span>" : "";
+    const duration = entry.durationMs !== null && entry.durationMs >= 1000 ? " · " + (Math.round(entry.durationMs / 100) / 10) + "s" : "";
+    return '<li class="st-' + entry.status + '" style="--n:' + Math.min(index, 30) + '"><time>' + esc(clock(entry.at)) + '</time><span class="what">' + agent +
+      "<b>" + esc(entry.tool) + "</b><code>" + esc(entry.subject) + "</code>" +
+      (entry.reason ? '<span class="why">' + esc(entry.reason) + "</span>" : "") +
+      '</span><span class="state">' + STATUS_LABEL[entry.status] + esc(duration) + "</span></li>";
+  });
+  const more = entries.length > TIMELINE_LIMIT
+    ? '<p class="more">and ' + (entries.length - TIMELINE_LIMIT) + " more actions in the embedded log</p>"
+    : "";
+  return '<section><h2>What the agent did, step by step</h2><ol class="tl">' + items.join("") + "</ol>" + more + "</section>";
 }

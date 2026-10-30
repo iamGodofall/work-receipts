@@ -8,6 +8,7 @@ import { createBundle, verifyBundle, type BundleVerification } from "./bundle";
 import { fingerprintOf, keyDir, loadOrCreateKey, signDigest } from "./signing";
 import { changedSince } from "./git";
 import { extractBundle, renderReceiptHtml } from "./html";
+import { renderPrSummary } from "./pr";
 import { baselineFromEvents, buildSessionReceipt, renderReceiptMarkdown, type CheckResult, type ContractInfo } from "./receipt";
 import { latestSessionId, readEvents, redactPreview, safeSessionId, sessionDir } from "./store";
 
@@ -107,6 +108,7 @@ export function main(argv: string[]): void {
     writeFileSync(join(dir, "receipt.json"), JSON.stringify(bundle, null, 2) + "\n", "utf8");
     writeFileSync(join(dir, "receipt.md"), markdown, "utf8");
     writeFileSync(join(dir, "receipt.html"), renderReceiptHtml(bundle), "utf8");
+    writeFileSync(join(dir, "receipt.pr.md"), renderPrSummary(bundle), "utf8");
     const where = join(".receipts", "sessions", sessionId);
     process.stdout.write(markdown + "\nSaved " + join(where, "receipt.html") + " (shareable, embeds the verifiable evidence bundle), receipt.md, and receipt.json.\n");
     // Exit non-zero only when asked, so the receipt still displays inside Claude Code.
@@ -147,6 +149,19 @@ export function main(argv: string[]): void {
     return;
   }
 
+  if (command === "pr") {
+    const requested = option(argv, "--session");
+    const sessionId = requested ? safeSessionId(requested) : latestSessionId(projectDir);
+    const file = sessionId ? join(sessionDir(projectDir, sessionId), "receipt.json") : null;
+    if (!file || !existsSync(file)) {
+      process.stdout.write("No receipt yet. Run /receipt first.\n");
+      process.exitCode = 1;
+      return;
+    }
+    process.stdout.write(renderPrSummary(JSON.parse(readFileSync(file, "utf8"))));
+    return;
+  }
+
   if (command === "key") {
     const keys = loadOrCreateKey();
     process.stdout.write(
@@ -157,6 +172,6 @@ export function main(argv: string[]): void {
     return;
   }
 
-  process.stdout.write("Usage: cli.js init | receipt [--session <id>] [--no-checks] [--no-sign] [--strict] | verify <file> [--expect-key <fingerprint>] | key\n");
+  process.stdout.write("Usage: cli.js init | receipt [--session <id>] [--no-checks] [--no-sign] [--strict] | pr [--session <id>] | verify <file> [--expect-key <fingerprint>] | key\n");
   process.exitCode = 1;
 }

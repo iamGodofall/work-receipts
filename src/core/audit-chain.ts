@@ -1,29 +1,36 @@
-import { z } from "zod";
-import { ActionKindSchema } from "./contracts";
+// zod/mini keeps this module light: the Claude Code hook loads it on every tool call.
+import * as z from "zod/mini";
+import { ACTION_KINDS } from "./action-kind";
 import { sha256Object } from "./integrity";
 
-export const AuditEventInputSchema = z.object({
-  eventId: z.string().min(1).max(128),
-  runId: z.string().min(1).max(128),
-  workspaceId: z.string().min(1).max(128),
-  actorSubject: z.string().min(1).max(128),
-  eventType: z.string().min(1).max(128),
-  actionKind: ActionKindSchema.optional(),
-  target: z.string().min(1).max(512).optional(),
-  actionDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-  policyOutcome: z.enum(["ALLOW", "DENY", "REQUIRE_APPROVAL"]).optional(),
-  resultStatus: z.enum(["success", "failed", "denied", "unknown"]).optional(),
-  approvalId: z.string().min(1).max(128).optional(),
-  payload: z.record(z.string(), z.unknown()),
-  createdAt: z.string().datetime(),
-}).strict();
+const boundedString = (max: number) => z.string().check(z.minLength(1), z.maxLength(max));
+const sha256 = () => z.string().check(z.regex(/^[a-f0-9]{64}$/));
 
-export const AuditEventSchema = AuditEventInputSchema.extend({
+const auditEventInputShape = {
+  eventId: boundedString(128),
+  runId: boundedString(128),
+  workspaceId: boundedString(128),
+  actorSubject: boundedString(128),
+  eventType: boundedString(128),
+  actionKind: z.optional(z.enum(ACTION_KINDS)),
+  target: z.optional(boundedString(512)),
+  actionDigest: z.optional(sha256()),
+  policyOutcome: z.optional(z.enum(["ALLOW", "DENY", "REQUIRE_APPROVAL"])),
+  resultStatus: z.optional(z.enum(["success", "failed", "denied", "unknown"])),
+  approvalId: z.optional(boundedString(128)),
+  payload: z.record(z.string(), z.unknown()),
+  createdAt: z.iso.datetime(),
+};
+
+export const AuditEventInputSchema = z.strictObject(auditEventInputShape);
+
+export const AuditEventSchema = z.strictObject({
+  ...auditEventInputShape,
   schemaVersion: z.literal("1.0"),
-  sequenceNo: z.number().int().positive(),
-  previousEventHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
-  eventHash: z.string().regex(/^[a-f0-9]{64}$/),
-}).strict();
+  sequenceNo: z.int().check(z.positive()),
+  previousEventHash: z.nullable(sha256()),
+  eventHash: sha256(),
+});
 
 export type AuditEventInput = z.infer<typeof AuditEventInputSchema>;
 export type AuditEvent = z.infer<typeof AuditEventSchema>;

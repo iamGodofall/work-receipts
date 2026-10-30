@@ -14,12 +14,12 @@ Agents report success. Reviewers need proof. A Work Receipt answers four questio
 
 1. **Did the checks pass?** Your acceptance commands are run and their results recorded.
 2. **Did the agent stay in scope?** File writes outside scope are blocked as they happen, and git independently confirms that nothing else changed. That includes changes made through shell commands.
-3. **What was blocked or needed approval?** Every denial and approval prompt is listed.
+3. **What exactly happened?** A step-by-step timeline shows every tool call, including subagents, and whether it ran, needed approval, or was blocked and why.
 4. **Can I trust this file?** The HTML receipt embeds its full evidence. Anyone can re-verify it, and edits are detected.
 
 ## Install
 
-Requirements: Claude Code, Node.js 20 or newer (22+ recommended for faster hooks), and git.
+Requirements: Claude Code, Node.js 20 or newer (22+ recommended for faster hooks), and git. Each hook adds about 20 ms on top of Node start-up.
 
 From a clone of this repository, inside Claude Code:
 
@@ -49,7 +49,7 @@ Or try it for one session: `claude --plugin-dir ./plugin`.
 
 2. Start a session and work normally. At session start Claude is told its scope, so it does not waste turns on actions that will be blocked.
 3. `/receipt` runs the checks and writes `.receipts/sessions/<session>/receipt.html`, plus `receipt.md` and `receipt.json`.
-4. Share `receipt.html` in a pull request or with a client. Receipts are signed with a key that is created on first use in `~/.work-receipts/`, outside every project and blocked from the agent. Run `node plugin/bin/cli.js key` to see your fingerprint, and publish it. Anyone can check a receipt:
+4. Run `/receipt-pr` for a ready-to-paste pull request summary (verdict, checks, scope), and attach `receipt.html` to the PR or send it to a client. Receipts are signed with a key that is created on first use in `~/.work-receipts/`, outside every project and blocked from the agent. Run `node plugin/bin/cli.js key` to see your fingerprint, and publish it. Anyone can check a receipt:
 
    ```bash
    node plugin/bin/cli.js verify receipt.html --expect-key <your fingerprint>
