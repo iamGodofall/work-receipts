@@ -151,5 +151,11 @@ export function classifyToolCall(
     return { category: "internal", actionKind: "read", target: "tool:" + toolName, outsideProject: false };
   }
 
+  // An unrecognised tool that carries a command is treated as a shell, so it
+  // gets the full shell policy rather than a generic approval prompt.
+  const command = stringField(toolInput, "command");
+  if (command !== undefined) {
+    return { category: "shell", actionKind: "execute_code", target: "shell", outsideProject: false, command };
+  }
   return { category: "unknown", actionKind: "execute_code", target: ("tool:" + toolName).slice(0, 512), outsideProject: false };
 }

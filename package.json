@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build:plugin": "esbuild src/recorder/bin/hook.ts src/recorder/bin/cli.ts --bundle --minify --platform=node --target=node20 --format=cjs --outdir=plugin/dist --log-level=warning",
-    "check": "npm run typecheck && npm test && npm run build:plugin"
+    "check": "npm run typecheck && npm test && npm run build:plugin",
+    "bench": "node scripts/bench.cjs --write-report"
   },
   "dependencies": {
     "zod": "^4.1.8"

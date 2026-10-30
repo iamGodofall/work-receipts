@@ -51,6 +51,40 @@ export function commandMatches(command: string, patterns: readonly string[]): bo
   });
 }
 
+/**
+ * Commands that are never acceptable inside a scoped session, whatever the
+ * allow list says: download-and-execute, evaluating strings as code, and
+ * wiping the filesystem root or home directory.
+ */
+const DANGEROUS_COMMANDS: { pattern: RegExp; reason: string }[] = [
+  {
+    pattern: /\b(curl|wget|iwr|irm|invoke-webrequest|invoke-restmethod)\b[^\n]*\|\s*(sudo\s+)?(sh|bash|zsh|dash|iex|invoke-expression|powershell|pwsh|python3?|node)\b/i,
+    reason: "Downloading and executing code in one step is not permitted.",
+  },
+  { pattern: /(^|[\s;&|(])(iex|invoke-expression)(\s|$|\()/i, reason: "Evaluating strings as PowerShell code is not permitted." },
+  {
+    pattern: /\brm\s+(-[a-z]*\s+)*-[a-z]*r[a-z]*\s+(-[a-z]*\s+)*("|')?(\/|~|\$home|\*)("|')?(\s|$|[);&|`])/i,
+    reason: "Recursively deleting the filesystem root, home directory, or everything in the current directory is not permitted.",
+  },
+  {
+    pattern: /\b(remove-item|rd|rmdir)\b[^\n]*(-recurse|\/s)[^\n]*\s("|')?([a-z]:\\?|\/|~|\$home)("|')?(\s|$)/i,
+    reason: "Recursively deleting a drive root or home directory is not permitted.",
+  },
+];
+
+export function dangerousCommandReason(command: string): string | null {
+  return DANGEROUS_COMMANDS.find((rule) => rule.pattern.test(command))?.reason ?? null;
+}
+
+/** True when any word in a shell command names a file the contract protects. */
+export function referencesProtectedFile(command: string, protect: readonly string[]): boolean {
+  return command
+    .split(/[\s"'`=;|&<>(),]+/)
+    .map((token) => token.replace(/\\/g, "/").replace(/^\.\//, ""))
+    .filter((token) => token.length > 0)
+    .some((token) => matchesPatternList(token, protect));
+}
+
 function decide(decision: SessionDecision, reason: string): SessionPolicyResult {
   return { decision, reason };
 }
@@ -123,6 +157,11 @@ export function evaluateSessionAction(
 
     case "shell": {
       const command = (action.command ?? "").trim();
+      const dangerous = dangerousCommandReason(command);
+      if (dangerous) return decide("deny", dangerous);
+      if (referencesProtectedFile(command, contract.protect)) {
+        return decide("deny", "Shell commands may not reference files protected by the session contract.");
+      }
       const composable = SHELL_COMPOSITION.test(command);
       if (!composable && commandMatches(command, contract.shell.allow)) {
         return decide("allow", "Command matches the contract's shell allow list.");
