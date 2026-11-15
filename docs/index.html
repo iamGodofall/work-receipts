@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work Receipts: know what your AI coding agent actually did</title>
+<meta name="description" content="A Claude Code plugin that enforces a scope you write on every tool call, keeps a tamper-evident log, and produces a signed receipt bound to the exact code, with a pull-request gate.">
+<meta property="og:title" content="Work Receipts: know what your AI coding agent actually did">
+<meta property="og:description" content="Scope you write, enforced on every tool call. A signed receipt bound to the exact code. A pull-request gate that blocks anything else.">
+<meta property="og:type" content="website">
+<style>
+:root { color-scheme: dark; --ink:#eef2f8; --muted:#9aa6bd; --line:rgba(255,255,255,.1); --card:rgba(255,255,255,.045); --ok:#34d399; --hot:#ff7a4d; --cyan:#4fe3dc; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background: radial-gradient(900px 500px at 8% -10%, rgba(255,122,77,.24), transparent 60%), radial-gradient(800px 520px at 100% 0%, rgba(79,227,220,.15), transparent 60%), #0b1322; }
+main { max-width:980px; margin:0 auto; padding:28px 20px 72px; }
+a { color:var(--cyan); }
+nav { display:flex; justify-content:space-between; align-items:center; gap:16px; font-size:15px; }
+nav b { letter-spacing:.02em; } nav a { color:var(--muted); text-decoration:none; margin-left:18px; } nav a:hover { color:#fff; }
+.hero { padding:64px 0 28px; }
+.eyebrow { color:var(--cyan); font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:13px; }
+h1 { font-size:clamp(34px,6vw,58px); line-height:1.05; letter-spacing:-.035em; margin:12px 0 18px; color:#fff; }
+h1 em { font-style:normal; color:var(--hot); }
+.lead { font-size:clamp(17px,2.2vw,20px); color:#c9d3e4; max-width:720px; }
+.cta { display:flex; flex-wrap:wrap; gap:12px; margin:28px 0 10px; }
+.btn { display:inline-block; padding:13px 20px; border-radius:12px; font-weight:700; text-decoration:none; border:1px solid var(--line); color:#fff; background:var(--card); }
+.btn.primary { background:linear-gradient(135deg,#ff7a4d,#ff5f6d); border:0; color:#1a0d08; }
+pre { margin:18px 0 0; padding:16px 18px; border-radius:14px; background:#070d18; border:1px solid var(--line); overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; color:#dfe7f5; }
+.muted { color:var(--muted); font-size:14px; }
+section { margin-top:56px; }
+h2 { font-size:clamp(24px,3.4vw,32px); letter-spacing:-.02em; margin:0 0 18px; color:#fff; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; }
+.card h3 { margin:6px 0 8px; font-size:17px; color:#fff; }
+.card p { margin:0; color:#c3cddf; font-size:15px; }
+.n { color:var(--cyan); font-weight:800; font-size:13px; letter-spacing:.1em; }
+.stat b { display:block; font-size:34px; color:#fff; letter-spacing:-.03em; }
+.stat span { color:var(--muted); font-size:14px; }
+.split { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+.price b { font-size:22px; color:#fff; }
+ul { padding-left:20px; color:#c3cddf; } li { margin:6px 0; }
+footer { margin-top:64px; padding-top:22px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; }
+nav a { white-space:nowrap; }
+@media (max-width:560px) { nav { flex-direction:column; align-items:flex-start; gap:6px; } nav a { margin:0 14px 0 0; } .hero { padding-top:36px; } }
+</style>
+</head>
+<body>
+<main>
+<nav><b>Work Receipts <span class="muted">by Enock Labs</span></b>
+<span><a href="#how">How it works</a><a href="#proof">Proof</a><a href="#teams">For teams</a><a href="https://github.com/iamGodofall/work-receipts">GitHub</a></span></nav>
+
+<div class="hero">
+<div class="eyebrow">For teams using Claude Code</div>
+<h1>Know what your AI coding agent <em>actually did</em>, not what it says it did.</h1>
+<p class="lead">You write a short contract: which files may change, which commands are pre-approved, which checks prove the work is done. Work Receipts enforces it on every tool call and ends the session with a signed receipt whose verdict comes from real checks and git, bound to the exact code. A pull-request gate blocks anything else.</p>
+<div class="cta">
+<a class="btn primary" href="mailto:landinwest@gmail.com?subject=Work%20Receipts%20team%20evaluation">Request a team evaluation</a>
+<a class="btn" href="receipt-example.html">See a real receipt</a>
+<a class="btn" href="https://github.com/iamGodofall/work-receipts-demo/pulls?q=is%3Apr">Watch the gate block a PR</a>
+</div>
+<pre>/plugin marketplace add iamGodofall/work-receipts
+/plugin install work-receipts@enock-labs</pre>
+<p class="muted">Inside Claude Code. Free for personal and noncommercial use. Runs entirely on your machine; no data leaves it.</p>
+</div>
+
+<section id="how">
+<h2>How it works</h2>
+<div class="grid">
+<div class="card"><div class="n">1 · CONTRACT</div><h3>You set the scope</h3><p><code>/receipt-init</code> reads your project and proposes your real test, lint and build commands. You set the goal; the agent can never edit the contract.</p></div>
+<div class="card"><div class="n">2 · ENFORCE</div><h3>Every tool call is checked</h3><p>Writes outside scope, secrets, and risky shell commands are blocked or sent for approval, with the reason. Claude is told its scope up front, so it rarely tries.</p></div>
+<div class="card"><div class="n">3 · RECEIPT</div><h3>A verdict from evidence</h3><p><code>/receipt</code> runs your checks, compares git, and signs a shareable receipt bound to the exact git tree, with a step-by-step timeline and authorship counts.</p></div>
+<div class="card"><div class="n">4 · GATE</div><h3>Pull requests prove it</h3><p>The GitHub Action passes a pull request only when a trusted receipt covers exactly its head commit. One edit after the receipt, and it fails.</p></div>
+</div>
+</section>
+
+<section id="proof">
+<h2>Proof, not promises</h2>
+<div class="grid">
+<div class="card stat"><b>22/22</b><span>scripted attacks stopped in the adversarial benchmark, assuming every approval prompt is clicked through</span></div>
+<div class="card stat"><b>0</b><span>known gaps; 5/5 legitimate sessions verified with no interruptions</span></div>
+<div class="card stat"><b>4 + 9</b><span>high and medium findings from an independent adversarial review, all fixed with regression tests</span></div>
+<div class="card stat"><b>3 OS</b><span>tests pass on Linux, Windows and macOS; validated in live Claude Code sessions</span></div>
+</div>
+<p class="muted">Receipts export as standard in-toto attestations, signed with Ed25519 and checkable with OpenSSL. Every receipt lists what it does not prove. <a href="https://github.com/iamGodofall/work-receipts/blob/main/docs/BENCHMARK.md">Benchmark</a> · <a href="https://github.com/iamGodofall/work-receipts/blob/main/docs/ATTESTATION.md">Attestation format</a> · <a href="https://github.com/iamGodofall/work-receipts/blob/main/SECURITY.md">Security</a></p>
+</section>
+
+<section id="teams">
+<h2>For teams and agencies</h2>
+<div class="split">
+<div class="card price"><b>One-repository evaluation</b><p class="muted">Fixed price, scoped on a short call</p>
+<ul><li>Work Receipts set up on a representative repository, with your own acceptance checks</li><li>Permitted, blocked, and failed-check scenarios run and explained</li><li>The pull-request gate wired into your CI</li><li>A findings report with example receipts and known limits</li></ul>
+<a class="btn primary" href="mailto:landinwest@gmail.com?subject=Work%20Receipts%20team%20evaluation">Request an evaluation</a></div>
+<div class="card price"><b>Commercial licence</b><p class="muted">For company use beyond evaluation</p>
+<ul><li>Use across your repositories and CI</li><li>Help with contracts, policies and rollout</li><li>Priority fixes and direct support</li><li>Personal and noncommercial use stays free</li></ul>
+<a class="btn" href="mailto:landinwest@gmail.com?subject=Work%20Receipts%20commercial%20licence">Ask about a licence</a></div>
+</div>
+</section>
+
+<footer>Work Receipts by Enock Labs · Source-available under PolyForm Noncommercial 1.0.0 · <a href="mailto:landinwest@gmail.com">landinwest@gmail.com</a><br>
+Work Receipts is an independent product, not affiliated with, sponsored by, or endorsed by Anthropic. Claude and Claude Code are trademarks of Anthropic.</footer>
+</main>
+</body>
+</html>

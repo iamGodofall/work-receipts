@@ -49,8 +49,9 @@ try {
 
   hook("session-start", { source: "startup" });
   call("Read", { file_path: join(project, "src", "signup.ts") }, "r1");
-  call("Edit", { file_path: join(project, "src", "signup.ts") }, "e1", touch("src/signup.ts"));
-  call("Write", { file_path: join(project, "test", "signup.test.ts") }, "e2", touch("test/signup.test.ts"));
+  // The written text matches what touch() adds, so the receipt's authorship line has something to attribute.
+  call("Edit", { file_path: join(project, "src", "signup.ts"), old_string: "export {};", new_string: "// validated" }, "e1", touch("src/signup.ts"));
+  call("Write", { file_path: join(project, "test", "signup.test.ts"), content: "// validated" }, "e2", touch("test/signup.test.ts"));
   call("Read", { file_path: join(project, ".env") }, "r2");
   call("Edit", { file_path: join(project, "package.json") }, "e3");
   call("Bash", { command: "npm test" }, "b1");
