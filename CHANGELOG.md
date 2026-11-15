@@ -1,6 +1,14 @@
 # Changelog
 
-## Work Receipts 0.2.0 (unreleased)
+## Work Receipts 0.2.1
+
+Patch release. The receipt format is unchanged (recorder 0.2.0), so 0.2.0 receipts stay verifiable.
+
+- Receipts carry no absolute paths or user names: command previews and out-of-project targets record the project folder as `.` and the home folder as `~`.
+- Shareable receipts fit phone screens; actions that were allowed but never completed are labelled clearly.
+- Commercial licence and evaluation contact in the README.
+
+## Work Receipts 0.2.0
 
 Receipts are now bound to the exact code they cover, can gate pull requests, and export standard attestations. Receipt computation changed, so the recorder version is 0.2.0; 0.1.0 receipts are reported as needing regeneration, never as tampered.
 

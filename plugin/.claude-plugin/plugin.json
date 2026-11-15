@@ -1,6 +1,6 @@
 {
   "name": "work-receipts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Work Receipts by Enock Labs: enforces a scope you write on every Claude Code tool call, keeps a tamper-evident log, verifies scope with git, and produces signed, verifiable receipts.",
   "author": {
     "name": "Enock Labs"
