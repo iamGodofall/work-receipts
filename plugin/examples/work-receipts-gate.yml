@@ -17,6 +17,6 @@ jobs:
         with:
           # Check the pull request's own head commit, not GitHub's merge preview.
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: iamGodofall/work-receipts@main # pin to a full commit SHA in production
+      - uses: iamGodofall/work-receipts@e60c2d156898475d043f54240c0323ba1719e877 # Work Receipts v0.2.1
         with:
           trusted-keys: "0000:0000:0000:0000:0000:0000:0000:0000" # replace with your published fingerprint(s)
