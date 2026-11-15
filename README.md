@@ -144,4 +144,8 @@ Source lives in `src/recorder/`. The committed bundles in `plugin/dist/` are reb
 
 Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). Personal and noncommercial use is free. Commercial use requires a commercial licence from Enock Labs.
 
+## Commercial licences and pilots
+
+Teams using Claude Code can start with a fixed-scope, one-repository evaluation: Work Receipts configured on a representative repository with your own acceptance checks, permitted and blocked scenarios run, and a findings report with example receipts. For a commercial licence or an evaluation, email **landinwest@gmail.com**. Security issues: see [SECURITY.md](../SECURITY.md).
+
 Work Receipts is an independent product. It is not affiliated with, sponsored by, or endorsed by Anthropic. Claude and Claude Code are trademarks of Anthropic.

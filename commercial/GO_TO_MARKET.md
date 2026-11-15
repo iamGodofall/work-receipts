@@ -96,5 +96,5 @@ Status on 2026-11-15 (release 0.2.0):
 - [x] Verify install and uninstall on supported Windows and Linux environments (from GitHub, isolated configs).
 - [x] Re-run the adversarial benchmark and preserve raw output (docs/BENCHMARK.md).
 - [x] Confirm package and marketplace metadata (`claude plugin validate` passes with no warnings), licence, and security disclosure process (SECURITY.md).
-- [ ] Support route: publish a contact address for licences and pilots in the README.
+- [x] Support route: licences and pilots via landinwest@gmail.com, published in the README.
 - [x] Review every public claim against current repository evidence (this document updated accordingly).
