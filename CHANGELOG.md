@@ -1,5 +1,18 @@
 # Changelog
 
+## Work Receipts 0.2.2
+
+Security and verification hardening release. New receipts use recorder version 0.2.2. Older content-only baselines remain readable and retain their original comparison behaviour.
+
+- Versioned path-state fingerprints now cover regular-file content, executable status, filesystem object type, and symlink targets. Metadata-only executable-bit changes and symlink retargeting are no longer invisible to the scope verdict.
+- Added regression tests for executable-bit-only changes, symlink retargeting to identical-content targets, and legacy/new baseline parsing.
+- Expanded the adversarial benchmark from 22 to 24 scenarios. All 24 listed attacks were prevented or caught. The two new metadata-only attacks were caught as out of scope. Five of five benign sessions still verify without interruption.
+- Upgraded the development test runner to patched Vitest 5.1.0 and the CI npm resolver to 11.19.1. The 2026-11-15 dependency audit reported zero known advisories across 98 installed packages.
+- CI now uploads the generated plugin bundle and benchmark report, then checks that the committed bundle matches the source build.
+- Updated the public benchmark report and product site to reflect the expanded test coverage.
+
+The benchmark is an internal, finite regression suite. It is not an independent penetration test, product certification, or proof of complete attack coverage.
+
 ## Work Receipts 0.2.1
 
 Patch release. The receipt format is unchanged (recorder 0.2.0), so 0.2.0 receipts stay verifiable.
