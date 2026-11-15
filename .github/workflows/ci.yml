@@ -36,9 +36,18 @@ jobs:
           name: work-receipts-benchmark-${{ github.sha }}
           path: docs/BENCHMARK-RESULTS.md
           if-no-files-found: warn
+      - name: Build plugin bundle
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:plugin
+      - name: Upload built plugin bundle
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-receipts-plugin-dist-${{ github.sha }}
+          path: plugin/dist/**
+          if-no-files-found: error
       - name: Confirm the committed plugin bundle is current
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          npm run build:plugin
           git diff --exit-code -- plugin/dist || { echo "plugin/dist is stale"; exit 1; }
