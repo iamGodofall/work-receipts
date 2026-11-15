@@ -45,11 +45,11 @@ describe("working-tree evidence", () => {
   it.skipIf(process.platform === "win32")("detects executable-bit-only changes outside the contract scope", () => {
     git("config", "core.filemode", "true");
     const baseline = captureBaseline(repo);
-    const file = join(repo, "README.md");
+    const file = join(repo, "package.json");
     const mode = statSync(file).mode;
     chmodSync(file, mode | 0o111);
     const changes = changedSince(repo, baseline);
-    expect(changes).toEqual({ available: true, changed: ["README.md"], contractChanged: false });
+    expect(changes).toEqual({ available: true, changed: ["package.json"], contractChanged: false });
   });
 
   it.skipIf(process.platform === "win32")("detects symlink retargeting when both targets contain identical bytes", () => {
