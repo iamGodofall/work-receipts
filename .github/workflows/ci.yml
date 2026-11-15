@@ -26,6 +26,17 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - name: Build plugin bundle
+        id: build_plugin
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:plugin
+      - name: Upload built plugin bundle
+        if: always() && matrix.os == 'ubuntu-latest' && steps.build_plugin.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-receipts-plugin-dist-${{ github.sha }}
+          path: plugin/dist/**
+          if-no-files-found: error
       - name: Run adversarial benchmark
         if: matrix.os == 'ubuntu-latest'
         run: npm run bench
@@ -36,16 +47,6 @@ jobs:
           name: work-receipts-benchmark-${{ github.sha }}
           path: docs/BENCHMARK-RESULTS.md
           if-no-files-found: warn
-      - name: Build plugin bundle
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run build:plugin
-      - name: Upload built plugin bundle
-        if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: work-receipts-plugin-dist-${{ github.sha }}
-          path: plugin/dist/**
-          if-no-files-found: error
       - name: Confirm the committed plugin bundle is current
         if: matrix.os == 'ubuntu-latest'
         shell: bash
