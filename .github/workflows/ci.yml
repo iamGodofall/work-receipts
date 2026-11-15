@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Use current npm resolver
+        run: npm install --global npm@11.19.1
       - run: npm ci
       - name: Capture dependency audit report
         if: matrix.os == 'ubuntu-latest'
