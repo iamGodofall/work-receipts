@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A scoped one-repository evaluation of Work Receipts for Claude Code, with real acceptance checks, signed evidence and pull-request verification.">
+<meta property="og:title" content="Work Receipts | Customer evaluation">
+<meta property="og:description" content="Evaluate scope enforcement, signed receipts and pull-request verification in one representative repository.">
+<title>Work Receipts | Customer evaluation</title>
+<style>
+:root{color-scheme:dark;--ink:#eef2f8;--muted:#9aa6bd;--line:rgba(255,255,255,.1);--card:rgba(255,255,255,.045);--hot:#ff7a4d;--cyan:#4fe3dc;--ok:#34d399}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(900px 500px at 8% -10%,rgba(255,122,77,.2),transparent 60%),radial-gradient(800px 520px at 100% 0%,rgba(79,227,220,.13),transparent 60%),#0b1322}
+main{max-width:940px;margin:0 auto;padding:28px 20px 76px}
+a{color:var(--cyan)}
+nav{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:14px}
+nav a{color:var(--muted);text-decoration:none}
+nav a:hover{color:#fff}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:28px;align-items:center;padding:66px 0 38px}
+.eyebrow{color:var(--cyan);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.06;letter-spacing:-.04em;margin:12px 0 18px;color:#fff}
+h1 em{font-style:normal;color:var(--hot)}
+.lead{font-size:19px;color:#c9d3e4;max-width:690px}
+.hero img{width:100%;height:200px;object-fit:contain}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 8px}
+.btn{display:inline-block;padding:12px 18px;border-radius:12px;font-weight:700;text-decoration:none;border:1px solid var(--line);color:#fff;background:var(--card)}
+.btn.primary{background:linear-gradient(135deg,#ff7a4d,#ff5f6d);border:0;color:#1a0d08}
+section{margin-top:40px}
+h2{font-size:26px;letter-spacing:-.02em;margin:0 0 14px;color:#fff}
+h3{font-size:17px;margin:5px 0 8px;color:#fff}
+p{color:#c3cddf}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:19px}
+.card p{margin:0;font-size:15px}
+.number{color:var(--cyan);font-weight:800;font-size:12px;letter-spacing:.1em}
+ul{padding-left:20px;color:#c3cddf}
+li{margin:7px 0}
+.note{border:1px solid rgba(255,122,77,.35);border-radius:15px;padding:16px 18px;background:rgba(255,122,77,.06);color:#e7d8d1}
+footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+@media(max-width:600px){main{padding:20px 14px 56px}.hero{grid-template-columns:1fr;padding:42px 0 26px;gap:10px}.hero img{grid-row:1;width:116px;height:138px;margin:auto}.lead{font-size:17px}nav{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="index.html">← Work Receipts</a><a href="https://github.com/iamGodofall/work-receipts">Source repository</a></nav>
+<header class="hero">
+<div>
+<div class="eyebrow">Customer evaluation</div>
+<h1>Test the evidence on <em>your own workflow.</em></h1>
+<p class="lead">A scoped evaluation of Work Receipts in one representative repository, using your own contract, acceptance checks, signed receipts and pull-request gate.</p>
+<div class="cta">
+<a class="btn primary" href="mailto:info@socialfeed.co.za?subject=Work%20Receipts%20evaluation">Request an evaluation</a>
+<a class="btn" href="PILOT_EVALUATION.md">Read the full evaluation protocol</a>
+</div>
+</div>
+<img src="mascot/full-body.png" width="160" height="200" alt="The canonical Work Receipts mascot">
+</header>
+
+<section>
+<h2>What the evaluation covers</h2>
+<div class="grid">
+<div class="card"><div class="number">01 · SETUP</div><h3>Confirm compatibility</h3><p>Review Claude Code, Node.js, Git, operating system and repository prerequisites. Install the plugin in a controlled branch or disposable copy.</p></div>
+<div class="card"><div class="number">02 · POLICY</div><h3>Define your contract</h3><p>Set the goal, permitted file paths, protected files, shell allow-list and acceptance checks. Your team owns the contract.</p></div>
+<div class="card"><div class="number">03 · TEST</div><h3>Exercise real scenarios</h3><p>Run permitted work, out-of-scope attempts, approval-required actions, failed checks and post-receipt code changes.</p></div>
+<div class="card"><div class="number">04 · VERIFY</div><h3>Check the evidence</h3><p>Validate the receipt signature, evidence integrity, Git tree binding and CI gate result using a customer-controlled trusted key.</p></div>
+</div>
+</section>
+
+<section>
+<h2>What your team receives</h2>
+<ul>
+<li>A record of the product version and tested environment.</li>
+<li>The reviewed session contract and acceptance-check definitions.</li>
+<li>Example receipts for the agreed scenarios.</li>
+<li>Signature, code-tree and pull-request gate verification results where included.</li>
+<li>A findings summary covering observed behaviour, false blocks, usability friction, missing coverage and unresolved limitations.</li>
+<li>A recommendation for the tested workflow: proceed, remediate, or do not proceed.</li>
+</ul>
+<p>The report applies only to the repository, versions, workflows and scenarios tested. It is not a security certification or a general assurance statement.</p>
+</section>
+
+<section>
+<h2>What your team needs</h2>
+<div class="grid">
+<div class="card"><h3>Environment</h3><p>Claude Code, Node.js 20 or newer, Git, and one repository suitable for controlled testing.</p></div>
+<div class="card"><h3>Acceptance checks</h3><p>Existing tests or acceptance commands representing the workflow being evaluated.</p></div>
+<div class="card"><h3>Ownership</h3><p>A person responsible for the contract, approval decisions, signing key and trusted CI fingerprint.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Data stays under your control</h2>
+<p>The plugin runs locally and makes no network requests. Your team retains control of the repository, signing key, session logs and receipts. You decide which evidence to share and should redact it first.</p>
+<p>Do not send source code, credentials, private keys, access tokens or unredacted environment files by email.</p>
+<div class="note">A signed receipt verifies integrity relative to a trusted public-key fingerprint. A signature does not prove that acceptance checks were truthful, well designed or run on an uncompromised host. Git tree comparison excludes gitignored files and the .receipts evidence directory by design.</div>
+</section>
+
+<section>
+<h2>Commercial terms</h2>
+<p>Work Receipts is source-available under the PolyForm Noncommercial License 1.0.0. Commercial use requires a separate commercial licence from Enock Labs. Evaluation scope, fees, deliverables and support commitments are agreed in writing before work begins.</p>
+<div class="cta"><a class="btn primary" href="mailto:info@socialfeed.co.za?subject=Work%20Receipts%20evaluation">Email the evaluation team</a></div>
+</section>
+
+<footer>
+Work Receipts by Enock Labs · <a href="mailto:info@socialfeed.co.za">info@socialfeed.co.za</a><br>
+<a href="index.html">Product website</a> · <a href="PILOT_EVALUATION.md">Evaluation protocol</a> · <a href="https://github.com/iamGodofall/work-receipts/blob/main/SECURITY.md">Security policy</a>
+</footer>
+</main>
+</body>
+</html>
