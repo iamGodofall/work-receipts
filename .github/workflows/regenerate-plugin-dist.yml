@@ -27,6 +27,7 @@ jobs:
           node-version: 22
       - name: Rebuild lockfile from package manifest
         run: |
+          npm install --global npm@11.19.1
           rm -f package-lock.json
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - run: npm ci
