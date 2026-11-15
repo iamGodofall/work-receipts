@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { copyFileSync, existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, utimesSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { CONTRACT_FILE, RECEIPTS_DIR } from "./contract";
@@ -9,7 +9,8 @@ const MAX_DIRTY_FILES = 500;
 
 export type GitBaseline =
   | { git: false }
-  | { git: true; head: string | null; dirty: { path: string; sha256: string | null }[]; truncated: boolean };
+  | { git: true; head: string | null; dirty: { path: string; sha256: string | null }[]; truncated: boolean }
+  | { git: true; fingerprintVersion: 2; head: string | null; dirty: { path: string; fingerprint: string | null }[]; truncated: boolean };
 
 export type GitChanges =
   | { available: false; reason: string }
@@ -239,6 +240,58 @@ function hashFile(projectDir: string, path: string): string | null {
   }
 }
 
+/**
+ * Version 2 path-state fingerprint. Git scope evidence must cover more than file
+ * bytes: Git records symlink targets and the executable bit in its tree. lstat
+ * avoids following symlinks, and a missing path is distinct from an unreadable
+ * one. The format is hashed so receipts retain only a fixed-size fingerprint.
+ */
+export function pathStateFingerprint(projectDir: string, path: string): string | null {
+  const absolute = join(projectDir, path);
+  const digest = (state: Record<string, string | number | boolean | null>) =>
+    createHash("sha256").update(JSON.stringify(state), "utf8").digest("hex");
+
+  let info: ReturnType<typeof lstatSync>;
+  try {
+    info = lstatSync(absolute);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") return null;
+    return digest({ version: 2, type: "unavailable", error: code ?? "unknown" });
+  }
+
+  if (info.isSymbolicLink()) {
+    try {
+      return digest({ version: 2, type: "symlink", target: readlinkSync(absolute) });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      return digest({ version: 2, type: "symlink-unavailable", error: code ?? "unknown" });
+    }
+  }
+
+  if (info.isFile()) {
+    try {
+      return digest({
+        version: 2,
+        type: "file",
+        executable: (info.mode & 0o111) !== 0,
+        sha256: createHash("sha256").update(readFileSync(absolute)).digest("hex"),
+      });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      return digest({ version: 2, type: "file-unavailable", executable: (info.mode & 0o111) !== 0, error: code ?? "unknown" });
+    }
+  }
+
+  if (info.isDirectory()) return digest({ version: 2, type: "directory" });
+
+  return digest({
+    version: 2,
+    type: "other",
+    mode: info.mode & 0o777,
+  });
+}
+
 function splitNul(output: string | null): string[] {
   return (output ?? "").split("\0").filter((entry) => entry.length > 0);
 }
@@ -265,8 +318,9 @@ export function captureBaseline(projectDir: string): GitBaseline {
   const paths = (pathsDifferingFrom(projectDir, head) ?? []).filter((path) => !isRecorderPath(path));
   return {
     git: true,
+    fingerprintVersion: 2,
     head,
-    dirty: paths.slice(0, MAX_DIRTY_FILES).map((path) => ({ path, sha256: hashFile(projectDir, path) })),
+    dirty: paths.slice(0, MAX_DIRTY_FILES).map((path) => ({ path, fingerprint: pathStateFingerprint(projectDir, path) })),
     truncated: paths.length > MAX_DIRTY_FILES,
   };
 }
@@ -284,11 +338,18 @@ export function changedSince(projectDir: string, baseline: GitBaseline | null): 
   const current = pathsDifferingFrom(projectDir, baseline.head);
   if (current === null) return { available: false, reason: "git could not compare the working tree with the baseline." };
 
-  const before = new Map(baseline.dirty.map((entry) => [entry.path, entry.sha256]));
+  const versioned = "fingerprintVersion" in baseline && baseline.fingerprintVersion === 2;
+  const before = new Map(baseline.dirty.map((entry) => [
+    entry.path,
+    "fingerprint" in entry ? entry.fingerprint : entry.sha256,
+  ]));
+  const currentState = (path: string) => versioned
+    ? pathStateFingerprint(projectDir, path)
+    : hashFile(projectDir, path);
   const candidates = new Set([...current, ...before.keys()]);
   const changed = [...candidates]
     .filter((path) => !isRecorderPath(path))
-    .filter((path) => (before.has(path) ? before.get(path) !== hashFile(projectDir, path) : true))
+    .filter((path) => (before.has(path) ? before.get(path) !== currentState(path) : true))
     .sort();
 
   return {

@@ -1,12 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SessionContractSchema } from "../contract";
 import { captureBaseline, changedSince } from "../git";
 import { appendAuditEvent } from "../../core/audit-chain";
-import { buildSessionReceipt, type CheckResult } from "../receipt";
+import { baselineFromEvents, buildSessionReceipt, type CheckResult } from "../receipt";
 
 let repo: string;
 
@@ -42,6 +42,31 @@ describe("working-tree evidence", () => {
     expect(changes).toEqual({ available: true, changed: ["package.json", "src/b.ts"], contractChanged: false });
   });
 
+  it.skipIf(process.platform === "win32")("detects executable-bit-only changes outside the contract scope", () => {
+    git("config", "core.filemode", "true");
+    const baseline = captureBaseline(repo);
+    const file = join(repo, "package.json");
+    const mode = statSync(file).mode;
+    chmodSync(file, mode | 0o111);
+    const changes = changedSince(repo, baseline);
+    expect(changes).toEqual({ available: true, changed: ["package.json"], contractChanged: false });
+  });
+
+  it.skipIf(process.platform === "win32")("detects symlink retargeting when both targets contain identical bytes", () => {
+    mkdirSync(join(repo, "src", "targets"), { recursive: true });
+    writeFileSync(join(repo, "src", "targets", "one.txt"), "same target bytes\n");
+    writeFileSync(join(repo, "src", "targets", "two.txt"), "same target bytes\n");
+    symlinkSync("targets/one.txt", join(repo, "src", "link.txt"));
+    git("add", "-A");
+    git("commit", "-q", "-m", "prepare symlink baseline");
+
+    const baseline = captureBaseline(repo);
+    unlinkSync(join(repo, "src", "link.txt"));
+    symlinkSync("targets/two.txt", join(repo, "src", "link.txt"));
+    const changes = changedSince(repo, baseline);
+    expect(changes).toEqual({ available: true, changed: ["src/link.txt"], contractChanged: false });
+  });
+
   it("ignores files that were already modified and did not change again", () => {
     writeFileSync(join(repo, "package.json"), "{\"dirty\":true}\n");
     const baseline = captureBaseline(repo);
@@ -63,6 +88,23 @@ describe("working-tree evidence", () => {
     writeFileSync(join(repo, "receipts.contract.json"), "{}\n");
     const changes = changedSince(repo, baseline);
     expect(changes).toEqual({ available: true, changed: [], contractChanged: true });
+  });
+
+  it("round-trips version 2 path-state baselines and keeps legacy baselines readable", () => {
+    const current = captureBaseline(repo);
+    const event = {
+      eventType: "session.baseline",
+      payload: { baseline: current },
+    };
+    expect(baselineFromEvents([event])).toEqual(current);
+
+    const legacy = {
+      git: true,
+      head: "a".repeat(40),
+      dirty: [{ path: "package.json", sha256: "b".repeat(64) }],
+      truncated: false,
+    };
+    expect(baselineFromEvents([{ eventType: "session.baseline", payload: { baseline: legacy } }])).toEqual(legacy);
   });
 
   it("is unavailable outside a git repository", () => {

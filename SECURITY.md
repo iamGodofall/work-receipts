@@ -21,3 +21,8 @@ The limitations printed on every receipt are known and accepted. Reports that we
 ## Past reviews
 
 - 2026-10-30: independent internal review of the recorder found 14 issues. The 13 that needed changes were fixed, with regression tests in `src/recorder/__tests__/review-regressions.test.ts`.
+
+
+## Threat model
+
+The current security objectives, trust assumptions, controls, known limitations and deployment guidance are documented in [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md). Reassess the model whenever the hook surface, signing model, CI gate or supported integrations change.

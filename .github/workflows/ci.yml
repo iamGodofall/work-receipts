@@ -19,19 +19,66 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
+      - name: Use current npm resolver
+        run: npm install --global npm@11.19.1
       - run: npm ci
+      - name: Capture dependency audit report
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          npm audit --json > npm-audit.json || true
+          node - <<'NODE'
+          const report = require('./npm-audit.json');
+          const counts = report.metadata?.vulnerabilities ?? {};
+          console.log('Dependency audit summary:', JSON.stringify(counts));
+          if (!report.metadata || !report.vulnerabilities) {
+            throw new Error('npm audit did not return a valid report');
+          }
+          for (const [name, item] of Object.entries(report.vulnerabilities)) {
+            console.log(JSON.stringify({
+              name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              fixAvailable: item.fixAvailable,
+              via: (item.via ?? []).map((entry) => typeof entry === 'string' ? entry : entry.title)
+            }));
+          }
+          if (Number(counts.total ?? 0) > 0) {
+            console.error(`npm audit found ${counts.total} known vulnerability finding(s). Resolve them or document an explicit, time-bounded exception before release.`);
+            process.exitCode = 1;
+          }
+          NODE
+      - name: Upload dependency audit report
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: work-receipts-npm-audit-${{ github.sha }}
+          path: npm-audit.json
+          if-no-files-found: warn
       - run: npm run typecheck
       - run: npm test
+      - name: Build plugin bundle
+        id: build_plugin
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:plugin
+      - name: Upload built plugin bundle
+        if: always() && matrix.os == 'ubuntu-latest' && steps.build_plugin.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: work-receipts-plugin-dist-${{ github.sha }}
+          path: plugin/dist/**
+          if-no-files-found: error
       - name: Run adversarial benchmark
         if: matrix.os == 'ubuntu-latest'
         run: npm run bench
       - name: Upload benchmark report
         if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: work-receipts-benchmark-${{ github.sha }}
           path: docs/BENCHMARK-RESULTS.md
@@ -40,5 +87,4 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          npm run build:plugin
           git diff --exit-code -- plugin/dist || { echo "plugin/dist is stale"; exit 1; }
