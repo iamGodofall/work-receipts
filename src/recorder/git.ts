@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { copyFileSync, existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { CONTRACT_FILE, RECEIPTS_DIR } from "./contract";
@@ -51,7 +51,15 @@ export type CodeIdentity =
 function withScratchIndex(projectDir: string, seed: string | null, steps: (env: Record<string, string>) => string | null): string | null {
   const scratch = join(tmpdir(), "work-receipts-index-" + randomBytes(8).toString("hex"));
   try {
-    if (seed) copyFileSync(seed, scratch);
+    if (seed) {
+      copyFileSync(seed, scratch);
+      // git's racy-clean protection compares file times with the index file's own
+      // time. A fresh copy would look newer than every entry, so a same-size edit
+      // made in the same second as the index was written would be trusted as
+      // unchanged and hashed as its old content. Keep the original time.
+      const original = statSync(seed);
+      utimesSync(scratch, original.atime, original.mtime);
+    }
     return steps({ GIT_INDEX_FILE: scratch });
   } catch {
     return null;

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -45,6 +45,25 @@ describe("code identity", () => {
     expect(treeOfRevision(repo, "HEAD")).toBe(before);
     expect(treeOfRevision(repo, currentHead(repo)!)).toBe(before);
     expect(treeOfRevision(repo, "HEAD~1")).not.toBe(before);
+  });
+
+  it("hashes a same-size edit made in the same second as the index (git's racy-clean case)", () => {
+    // Make stat data alone unable to reveal the edit: same size, same mtime, ctime ignored.
+    git("config", "core.trustctime", "false");
+    const file = join(repo, "src", "a.ts");
+    // Whole seconds are stored exactly on every platform, so the restored time matches the index entry bit for bit.
+    const instant = Math.floor(Date.now() / 1000) - 100;
+    utimesSync(file, instant, instant);
+    git("add", "src/a.ts"); // the index entry now records mtime = instant
+    writeFileSync(file, "export const a = 9;\n");
+    utimesSync(file, instant, instant);
+    // The index was written in the same instant as the entry it records: only racy-clean detection can catch this.
+    utimesSync(join(repo, ".git", "index"), instant, instant);
+    const tree = workingTreeId(repo);
+    git("add", "-A");
+    git("commit", "-q", "-m", "edit");
+    expect(git("show", "HEAD:src/a.ts")).toBe("export const a = 9;");
+    expect(tree).toBe(treeOfRevision(repo, "HEAD"));
   });
 
   it("leaves the real index and the working tree untouched", () => {

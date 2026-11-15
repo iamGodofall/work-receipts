@@ -8,5 +8,6 @@ export default defineConfig({
     environment: "node",
     // Recorder tests spawn real git processes, which are slow on Windows runners.
     testTimeout: 30_000,
+    setupFiles: ["src/recorder/__tests__/setup.ts"],
   },
 });
