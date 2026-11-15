@@ -150,6 +150,6 @@ Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). Pers
 
 ## Commercial licences and pilots
 
-Teams using Claude Code can start with a fixed-scope, one-repository evaluation: Work Receipts configured on a representative repository with your own acceptance checks, permitted and blocked scenarios run, and a findings report with example receipts. For a commercial licence or an evaluation, email **landinwest@gmail.com**. Security issues: see [SECURITY.md](../SECURITY.md).
+Teams using Claude Code can request a scoped one-repository evaluation. The evaluation covers installation, a customer-authored contract, real acceptance checks, allowed and blocked scenarios, receipt verification, and a CI gate where appropriate. The customer retains control of the repository and chooses what evidence to share. See [the evaluation protocol](docs/PILOT_EVALUATION.md) before contacting **info@socialfeed.co.za** about an evaluation or commercial licence. Security issues: see [SECURITY.md](SECURITY.md).
 
 Work Receipts is an independent product. It is not affiliated with, sponsored by, or endorsed by Anthropic. Claude and Claude Code are trademarks of Anthropic.
