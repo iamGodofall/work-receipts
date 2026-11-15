@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -40,6 +40,31 @@ describe("working-tree evidence", () => {
     writeFileSync(join(repo, "src", "b.ts"), "export const b = 2;\n");
     const changes = changedSince(repo, baseline);
     expect(changes).toEqual({ available: true, changed: ["package.json", "src/b.ts"], contractChanged: false });
+  });
+
+  it.skipIf(process.platform === "win32")("detects executable-bit-only changes outside the contract scope", () => {
+    git("config", "core.filemode", "true");
+    const baseline = captureBaseline(repo);
+    const file = join(repo, "README.md");
+    const mode = statSync(file).mode;
+    chmodSync(file, mode | 0o111);
+    const changes = changedSince(repo, baseline);
+    expect(changes).toEqual({ available: true, changed: ["README.md"], contractChanged: false });
+  });
+
+  it.skipIf(process.platform === "win32")("detects symlink retargeting when both targets contain identical bytes", () => {
+    mkdirSync(join(repo, "src", "targets"), { recursive: true });
+    writeFileSync(join(repo, "src", "targets", "one.txt"), "same target bytes\n");
+    writeFileSync(join(repo, "src", "targets", "two.txt"), "same target bytes\n");
+    symlinkSync("targets/one.txt", join(repo, "src", "link.txt"));
+    git("add", "-A");
+    git("commit", "-q", "-m", "prepare symlink baseline");
+
+    const baseline = captureBaseline(repo);
+    unlinkSync(join(repo, "src", "link.txt"));
+    symlinkSync("targets/two.txt", join(repo, "src", "link.txt"));
+    const changes = changedSince(repo, baseline);
+    expect(changes).toEqual({ available: true, changed: ["src/link.txt"], contractChanged: false });
   });
 
   it("ignores files that were already modified and did not change again", () => {
