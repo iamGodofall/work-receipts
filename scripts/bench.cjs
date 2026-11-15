@@ -316,5 +316,5 @@ const report = [
 ].join("\n");
 
 console.log(report);
-if (process.argv.includes("--write-report")) fs.writeFileSync(join(root, "docs", "BENCHMARK.md"), report);
+if (process.argv.includes("--write-report")) fs.writeFileSync(join(root, "docs", "BENCHMARK-RESULTS.md"), report);
 process.exitCode = handled.length === attacks.length && byDesignOk.length === byDesign.length && benignOk.length === benign.length ? 0 : 1;
