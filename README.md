@@ -1,12 +1,14 @@
 # Work Receipts for Claude Code
 
+![The canonical Work Receipts mascot](docs/mascot/full-body.png)
+
 By Enock Labs.
 
 **Know what your agent actually did, not what it says it did.**
 
 Work Receipts is a Claude Code plugin. You write a short contract: the goal, which files may change, which commands are pre-approved, and which checks prove the work is done. The plugin enforces that scope on every tool call, records everything in a tamper-evident log, and ends the session with a receipt whose verdict comes from real checks and git, never from the model.
 
-![Example receipt](plugin/examples/receipt-example.png)
+[Open the canonical HTML example receipt](docs/receipt-example.html). The HTML example is kept current with the verified mascot artwork.
 
 ## Why
 
