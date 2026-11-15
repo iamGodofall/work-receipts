@@ -76,10 +76,10 @@ nav a { white-space:nowrap; }
 <section id="proof">
 <h2>Proof, not promises</h2>
 <div class="grid">
-<div class="card stat"><b>22/22</b><span>scripted attacks stopped in the adversarial benchmark, assuming every approval prompt is clicked through</span></div>
-<div class="card stat"><b>0</b><span>known gaps; 5/5 legitimate sessions verified with no interruptions</span></div>
-<div class="card stat"><b>4 + 9</b><span>high and medium findings from an independent adversarial review, all fixed with regression tests</span></div>
-<div class="card stat"><b>3 OS</b><span>tests pass on Linux, Windows and macOS; validated in live Claude Code sessions</span></div>
+<div class="card stat"><b>Scripted</b><span>Repeatable scenarios cover scope escape, protected files, shell misuse, receipt tampering and commit drift</span></div>
+<div class="card stat"><b>1 known limit</b><span>Project-wide Grep with a sensitive file not excluded by .gitignore remains documented in the benchmark</span></div>
+<div class="card stat"><b>13 fixed</b><span>Findings requiring changes in an internal adversarial review were fixed with regression tests. This is not an external audit.</span></div>
+<div class="card stat"><b>3 OS</b><span>CI typecheck, tests and plugin bundle checks pass on Linux, Windows and macOS</span></div>
 </div>
 <p class="muted">Receipts export as standard in-toto attestations, signed with Ed25519 and checkable with OpenSSL. Every receipt lists what it does not prove. <a href="https://github.com/iamGodofall/work-receipts/blob/main/docs/BENCHMARK.md">Benchmark</a> · <a href="https://github.com/iamGodofall/work-receipts/blob/main/docs/ATTESTATION.md">Attestation format</a> · <a href="https://github.com/iamGodofall/work-receipts/blob/main/SECURITY.md">Security</a></p>
 </section>
@@ -87,7 +87,7 @@ nav a { white-space:nowrap; }
 <section id="teams">
 <h2>For teams and agencies</h2>
 <div class="split">
-<div class="card price"><b>One-repository evaluation</b><p class="muted">Fixed price, scoped on a short call</p>
+<div class="card price"><b>One-repository evaluation</b><p class="muted">Scope and commercial terms agreed before evaluation</p>
 <ul><li>Work Receipts set up on a representative repository, with your own acceptance checks</li><li>Permitted, blocked, and failed-check scenarios run and explained</li><li>The pull-request gate wired into your CI</li><li>A findings report with example receipts and known limits</li></ul>
 <a class="btn primary" href="mailto:landinwest@gmail.com?subject=Work%20Receipts%20team%20evaluation">Request an evaluation</a></div>
 <div class="card price"><b>Commercial licence</b><p class="muted">For company use beyond evaluation</p>
