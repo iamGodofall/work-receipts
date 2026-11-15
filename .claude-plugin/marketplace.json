@@ -3,11 +3,14 @@
   "owner": {
     "name": "Enock Labs"
   },
+  "metadata": {
+    "description": "Enock Labs plugins for Claude Code: evidence you can verify for what an AI coding agent actually did."
+  },
   "plugins": [
     {
       "name": "work-receipts",
       "source": "./plugin",
-      "description": "Tamper-evident tool-call log, session scope enforcement, and verified Work Receipts for Claude Code."
+      "description": "Enforce a scope you write on every tool call, keep a tamper-evident log, and get a signed receipt bound to the exact code, with a pull-request gate and in-toto attestations."
     }
   ]
 }

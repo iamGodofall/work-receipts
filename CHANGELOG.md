@@ -23,6 +23,21 @@ Hardening from an adversarial review of this release (4 high, 9 medium, 11 low f
 - The gate fails when `.receipts` holds anything other than receipt artifacts. Line digests no longer appear in shareable receipts, and keys are per session. A trailing `--tree` with no value is now an error, unpinned attestations exit 3, contract error text is bounded and sanitised, file tools cannot write into `.git`, and summary text escapes backslashes and control characters.
 - Benchmark: 22/22 attacks stopped (three new: `--output` truncation, editing code after the receipt, hiding code under `.receipts`), 0 relying only on a human, and 5/5 benign sessions verified, including a commit that passes the gate.
 
+Found by running on real infrastructure (public CI and a live Claude Code session), each fixed with a regression test:
+
+- On GitHub's Windows runners every action was denied, because the project folder sat under the short name `C:\Users\RUNNER~1`. Alias checks now apply only to the part of a path inside the project.
+- On macOS and Windows runners the repository-root check compared paths literally (`/var` is a symlink; `RUNNER~1` is a short name) and refused the code identity. It now compares real paths.
+- The throwaway index used for code identity had a fresh timestamp, which disabled git's racy-clean protection: a same-size edit made in the same second as the index was written could be hashed as its old content, so a receipt could name stale code. The copy now keeps the real index's timestamps. A proof branch with the fix disabled failed this test on Ubuntu and macOS CI.
+- Running `/receipt` in a new Claude Code session receipted that new, empty session and reported Verified. Receipts and pull request summaries now pick the most recent session with agent work and say which sessions they skipped.
+- Recorder tests yield to the event loop after each test, so long synchronous git work cannot trip vitest's RPC timeout on many-core machines.
+
+Validated on 2026-11-15:
+
+- Public CI green on Ubuntu, Windows, and macOS.
+- The pull-request gate on real GitHub pull requests in a public demo repository: a verified change passed, and the same change edited after its receipt failed with "covers tree 62209758, not this commit's 5de5114f".
+- Two live Claude Code 2.1.314 sessions with the plugin loaded, given an in-scope task plus two deliberate violations (read `.env`, edit `package.json`). Claude made the change, ran `npm test` without a prompt, and declined both violations because it had been told its scope; a whole-project search that would have read the unignored `.env` was blocked. `/receipt` inside Claude Code produced a Verified receipt bound to the tree, with 3 of 3 added lines attributed to the agent.
+- `claude plugin validate` passes with no warnings.
+
 Known and accepted: computing a code identity leaves unreachable blobs in the object store until git's normal garbage collection.
 
 ## Work Receipts 0.1.0

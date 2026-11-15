@@ -107,6 +107,51 @@ export function appendEvent(
   });
 }
 
+/** Tools that only invoke commands (such as /receipt itself) and do no work of their own. */
+const COMMAND_ONLY_TOOLS = new Set(["Skill", "SlashCommand"]);
+/** Shell commands that run the recorder itself. */
+const RECORDER_COMMAND = /plugin[\\/]+bin[\\/]+cli\.js|work-receipts.*cli\.js/i;
+
+/** True when a session log records at least one agent action beyond running the recorder's own commands. */
+export function hasAgentWork(events: unknown[]): boolean {
+  return events.some((event) => {
+    const record = event as { eventType?: unknown; payload?: { tool?: unknown; commandPreview?: unknown } } | null;
+    if (!record || record.eventType !== "tool.requested") return false;
+    const tool = typeof record.payload?.tool === "string" ? record.payload.tool : "";
+    if (COMMAND_ONLY_TOOLS.has(tool)) return false;
+    const preview = typeof record.payload?.commandPreview === "string" ? record.payload.commandPreview : "";
+    return !RECORDER_COMMAND.test(preview);
+  });
+}
+
+/**
+ * The most recent session that did real work, for commands run without a
+ * session id. Running /receipt in a new Claude Code session starts a session
+ * of its own; without this, the receipt would describe that empty session
+ * instead of the work. Returns how many newer sessions were skipped.
+ */
+export function latestWorkSession(projectDir: string): { sessionId: string; skipped: number } | null {
+  const root = sessionsRoot(projectDir);
+  if (!existsSync(root)) return null;
+  const sessions = readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const file = join(root, entry.name, "events.jsonl");
+      return { name: entry.name, mtime: existsSync(file) ? statSync(file).mtimeMs : 0 };
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+  for (let index = 0; index < sessions.length; index += 1) {
+    let events: unknown[] = [];
+    try {
+      events = readEvents(join(root, sessions[index].name));
+    } catch {
+      continue;
+    }
+    if (hasAgentWork(events)) return { sessionId: sessions[index].name, skipped: index };
+  }
+  return null;
+}
+
 /** Most recently modified session directory, used when no session is named. */
 export function latestSessionId(projectDir: string): string | null {
   const root = sessionsRoot(projectDir);

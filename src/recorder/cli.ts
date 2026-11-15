@@ -14,7 +14,7 @@ import { contractFromProposal, fileSystemReader, PLACEHOLDER_CHECK, proposeContr
 import { extractBundle, renderReceiptHtml } from "./html";
 import { renderPrSummary } from "./pr";
 import { baselineFromEvents, buildSessionReceipt, renderReceiptMarkdown, type CheckResult, type ContractInfo } from "./receipt";
-import { latestSessionId, readEvents, redactPreview, safeSessionId, sessionDir } from "./store";
+import { latestSessionId, latestWorkSession, readEvents, redactPreview, safeSessionId, sessionDir } from "./store";
 
 export function runCheck(projectDir: string, check: SessionCheck): CheckResult {
   const started = Date.now();
@@ -146,11 +146,18 @@ export function main(argv: string[]): void {
 
   if (command === "receipt") {
     const requested = option(argv, "--session");
-    const sessionId = requested ? safeSessionId(requested) : latestSessionId(projectDir);
+    const work = requested ? null : latestWorkSession(projectDir);
+    const sessionId = requested ? safeSessionId(requested) : work?.sessionId ?? null;
     if (!sessionId) {
-      process.stdout.write("No recorded sessions found under .receipts/sessions.\n");
+      process.stdout.write(latestSessionId(projectDir)
+        ? "No recorded session contains agent work yet, only runs of the recorder's own commands. Pass --session <id> to receipt one anyway.\n"
+        : "No recorded sessions found under .receipts/sessions.\n");
       process.exitCode = 1;
       return;
+    }
+    if (work && work.skipped > 0) {
+      process.stdout.write("Receipt for the most recent session with agent work (" + sessionId + "), skipping " + work.skipped +
+        " newer session" + (work.skipped === 1 ? "" : "s") + " that only ran recorder commands. Use --session <id> to choose another.\n\n");
     }
 
     const loaded = loadContract(projectDir);
@@ -355,7 +362,7 @@ export function main(argv: string[]): void {
 
   if (command === "pr") {
     const requested = option(argv, "--session");
-    const sessionId = requested ? safeSessionId(requested) : latestSessionId(projectDir);
+    const sessionId = requested ? safeSessionId(requested) : latestWorkSession(projectDir)?.sessionId ?? null;
     const file = sessionId ? join(sessionDir(projectDir, sessionId), "receipt.json") : null;
     if (!file || !existsSync(file)) {
       process.stdout.write("No receipt yet. Run /receipt first.\n");

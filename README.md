@@ -21,14 +21,16 @@ Agents report success. Reviewers need proof. A Work Receipt answers four questio
 
 Requirements: Claude Code, Node.js 20 or newer (22+ recommended for faster hooks), and git. Each hook adds about 20 ms on top of Node start-up.
 
-From a clone of this repository, inside Claude Code:
+Inside Claude Code:
 
 ```text
-/plugin marketplace add ./
+/plugin marketplace add iamGodofall/work-receipts
 /plugin install work-receipts@enock-labs
 ```
 
-Or try it for one session: `claude --plugin-dir ./plugin`.
+Or from a clone: `/plugin marketplace add ./`, or try it for one session with `claude --plugin-dir ./plugin`.
+
+See it working: the [live gate demo](https://github.com/iamGodofall/work-receipts-demo/pulls?q=is%3Apr) has a pull request that passes with a verified receipt and one that fails because its code was edited after the receipt.
 
 ## Quick start
 
