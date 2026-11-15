@@ -1,7 +1,8 @@
 import { verifyAuditChain, type AuditChainAssessment, type AuditEvent } from "../core/audit-chain";
 import { sha256Object } from "../core/integrity";
 import type { SessionContract } from "./contract";
-import type { GitBaseline, GitChanges } from "./git";
+import { describeAttribution, type Attribution } from "./attribution";
+import { COMMIT_ID, type CodeIdentity, type GitBaseline, type GitChanges } from "./git";
 import { matchesPatternList } from "./glob";
 
 export type CheckResult = {
@@ -28,7 +29,7 @@ export type ContractInfo =
   | { status: "loaded"; contract: SessionContract };
 
 /** Bump whenever receipt computation changes, so older receipts are never misread as tampered. */
-export const RECORDER_VERSION = "0.1.0";
+export const RECORDER_VERSION = "0.2.0";
 
 export type Verdict = "verified" | "checks_failed" | "out_of_scope" | "unverified" | "tampered";
 
@@ -59,6 +60,10 @@ export type SessionReceipt = {
   /** Changed files that can alter what the acceptance checks actually execute. */
   checkInputsChanged: string[];
   checks: CheckResult[];
+  /** The exact code the checks ran against, as a git tree hash. */
+  code: CodeIdentity;
+  /** How many added lines agent file tools wrote; counts only, no content. */
+  attribution: Attribution;
   verdict: Verdict;
   verdictReason: string;
   limitations: string[];
@@ -79,7 +84,7 @@ export const STANDING_LIMITATIONS = [
   "The hash chain detects edits to recorded events. It cannot detect a log that was deleted or regenerated wholesale by someone with write access to this machine.",
   "Working-tree changes come from git and include every change since the session started, including edits you made yourself. Files ignored by .gitignore are not compared.",
   "An approval request followed by execution shows that the action ran after the host asked for permission. It does not prove which person approved it.",
-  "Acceptance checks run against the working tree when the receipt is generated, not at the moment each action ran.",
+  "Acceptance checks run against the working tree when the receipt is generated, not at the moment each action ran. The receipt names that tree by its git tree hash, which excludes gitignored files and the .receipts folder.",
   "Command previews use heuristic secret redaction and may miss unusual credential formats.",
   "A signature identifies the user key that produced the receipt. The agent runs as the same OS user: file tools and shell commands naming the key are blocked, but a disguised shell command approved by you could still read it.",
 ];
@@ -100,8 +105,12 @@ export function buildSessionReceipt(params: {
   checks: CheckResult[];
   gitChanges: GitChanges;
   hashFile: (projectRelativePath: string) => string | null;
+  code?: CodeIdentity;
+  attribution?: Attribution;
   now?: Date;
 }): SessionReceipt {
+  const code: CodeIdentity = params.code ?? { available: false, reason: "The code identity was not recorded." };
+  const checksRewroteCode = code.available && params.checks.length > 0 && code.tree !== code.treeAfterChecks;
   const assessment = verifyAuditChain(params.events);
   const events = assessment.valid ? (params.events as AuditEvent[]) : [];
 
@@ -195,6 +204,9 @@ export function buildSessionReceipt(params: {
     const failing = params.checks.filter((check) => check.status !== "passed").map((check) => check.id);
     verdict = "checks_failed";
     verdictReason = "Acceptance checks did not pass: " + failing.join(", ") + ".";
+  } else if (checksRewroteCode) {
+    verdict = "unverified";
+    verdictReason = "The acceptance checks passed but changed files while running, so the code they checked is not the code that remains. Make the checks read-only (for example, lint without --fix) and regenerate the receipt.";
   } else {
     verdict = "verified";
     verdictReason = (params.checks.length === 1 ? "The acceptance check" : "All " + params.checks.length + " acceptance checks") + " passed against the current working tree, and every change stayed in scope.";
@@ -221,6 +233,8 @@ export function buildSessionReceipt(params: {
     workingTree: { ...changes, outOfScope, notFromFileTools, ignored },
     checkInputsChanged,
     checks: params.checks,
+    code,
+    attribution: params.attribution ?? { available: false, reason: "Authorship was not measured." },
     verdict,
     verdictReason,
     limitations: STANDING_LIMITATIONS,
@@ -245,6 +259,10 @@ export function renderReceiptMarkdown(receipt: SessionReceipt): string {
   lines.push("- Goal: " + (receipt.contract.goal ?? "_no contract_"));
   lines.push("- Window: " + (receipt.firstEventAt ?? "n/a") + " to " + (receipt.lastEventAt ?? "n/a"));
   lines.push("- Event log: " + (receipt.chain.valid ? "intact" : "FAILED") + ", " + receipt.chain.checkedEvents + " events, head `" + (receipt.chain.headHash?.slice(0, 16) ?? "none") + "`");
+  lines.push("- Code: " + (receipt.code.available
+    ? "git tree `" + receipt.code.tree + "`" + (receipt.code.tree !== receipt.code.treeAfterChecks ? " (checks changed it to `" + receipt.code.treeAfterChecks.slice(0, 12) + "`)" : "") + ". Confirm a commit matches with `verify --tree <commit>`."
+    : "not identified (" + receipt.code.reason + ")"));
+  lines.push("- Authorship: " + describeAttribution(receipt.attribution));
   lines.push("- Actions: " + receipt.summary.requested + " requested, " + receipt.summary.completed + " completed, " + receipt.summary.failed + " failed, " + receipt.summary.denied + " denied, " + receipt.summary.approvalRequested + " needed approval");
   lines.push("");
 
@@ -319,13 +337,30 @@ export function renderReceiptMarkdown(receipt: SessionReceipt): string {
   return lines.join("\n");
 }
 
-/** The first session.baseline event, if the log recorded one. */
+const SAFE_RELATIVE_PATH = (path: unknown): path is string =>
+  typeof path === "string" && path.length > 0 && path.length <= 4096 && !path.includes("\0") &&
+  !/^([A-Za-z]:|[\\/])/.test(path) && !path.split(/[\\/]/).includes("..");
+
+/**
+ * The first session.baseline event, validated: a log is evidence, not trusted
+ * input, so a malformed baseline is treated as absent (which yields Unverified).
+ */
 export function baselineFromEvents(events: unknown[]): GitBaseline | null {
   for (const event of events) {
-    const record = event as { eventType?: unknown; payload?: { baseline?: unknown } };
-    if (record.eventType === "session.baseline" && record.payload?.baseline) {
-      return record.payload.baseline as GitBaseline;
+    const record = event as { eventType?: unknown; payload?: { baseline?: unknown } } | null;
+    if (!record || record.eventType !== "session.baseline" || !record.payload?.baseline) continue;
+    const baseline = record.payload.baseline as Record<string, unknown>;
+    if (baseline.git === false) return { git: false };
+    if (baseline.git !== true || typeof baseline.truncated !== "boolean" || !Array.isArray(baseline.dirty)) return null;
+    if (baseline.head !== null && !(typeof baseline.head === "string" && COMMIT_ID.test(baseline.head))) return null;
+    const dirty: { path: string; sha256: string | null }[] = [];
+    for (const entry of baseline.dirty as unknown[]) {
+      const item = entry as { path?: unknown; sha256?: unknown } | null;
+      if (!item || !SAFE_RELATIVE_PATH(item.path)) return null;
+      if (item.sha256 !== null && !(typeof item.sha256 === "string" && /^[0-9a-f]{64}$/.test(item.sha256))) return null;
+      dirty.push({ path: item.path, sha256: item.sha256 });
     }
+    return { git: true, head: baseline.head as string | null, dirty, truncated: baseline.truncated };
   }
   return null;
 }

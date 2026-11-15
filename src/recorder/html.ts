@@ -1,4 +1,5 @@
 import type { ReceiptBundle } from "./bundle";
+import { describeAttribution } from "./attribution";
 import type { AuditEvent } from "../core/audit-chain";
 import type { SessionReceipt, Verdict } from "./receipt";
 import { buildTimeline, type TimelineEntry, type TimelineStatus } from "./timeline";
@@ -171,6 +172,13 @@ footer { margin-top:28px; font-size:12.5px; line-height:1.6; }
 <div><b>${receipt.workingTree.available ? receipt.workingTree.changed.length : "n/a"}</b>files changed</div>
 <div><b>${receipt.checks.filter((check) => check.status === "passed").length}/${receipt.checks.length}</b>checks passed</div>
 </div>
+
+<section><h2>Code and authorship</h2>
+<p>${receipt.code?.available
+  ? "Checks ran against git tree <code>" + esc(receipt.code.tree) + "</code>" + (receipt.code.tree !== receipt.code.treeAfterChecks ? " <span class=\"bad\">and changed it while running</span>" : "") + ". A commit carries exactly this code when <code>verify --tree &lt;commit&gt;</code> reports a match."
+  : "<span class=\"muted\">Code not identified: " + esc(receipt.code?.reason ?? "not recorded") + "</span>"}</p>
+<p>${esc(describeAttribution(receipt.attribution ?? { available: false, reason: "not recorded" }))}</p>
+</section>
 
 ${checks.length ? `<section><h2>Acceptance checks</h2><table><tr><th>Check</th><th>Command</th><th>Result</th><th>Exit</th><th>Time</th></tr>${checks.join("")}</table></section>` : ""}
 

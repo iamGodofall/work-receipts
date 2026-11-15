@@ -5,11 +5,17 @@ import { createHash } from "node:crypto";
  * Reject unsupported values rather than silently producing ambiguous digests.
  */
 export function canonicalJson(value: unknown): string {
-  const normalized = normalize(value, new WeakSet<object>());
+  const normalized = normalize(value, new WeakSet<object>(), 0);
   return JSON.stringify(normalized);
 }
 
-function normalize(value: unknown, ancestors: WeakSet<object>): unknown {
+/** Deep enough for any legitimate record; bounds recursion on hostile input. */
+export const MAX_CANONICAL_DEPTH = 64;
+
+function normalize(value: unknown, ancestors: WeakSet<object>, depth: number): unknown {
+  if (depth > MAX_CANONICAL_DEPTH) {
+    throw new TypeError("Canonical JSON nesting exceeds " + MAX_CANONICAL_DEPTH + " levels.");
+  }
   if (value === null || typeof value === "string" || typeof value === "boolean") {
     return value;
   }
@@ -32,7 +38,7 @@ function normalize(value: unknown, ancestors: WeakSet<object>): unknown {
   ancestors.add(value);
   try {
     if (Array.isArray(value)) {
-      return value.map((item) => normalize(item, ancestors));
+      return value.map((item) => normalize(item, ancestors, depth + 1));
     }
 
     const prototype = Object.getPrototypeOf(value);
@@ -47,7 +53,7 @@ function normalize(value: unknown, ancestors: WeakSet<object>): unknown {
       if (item === undefined) {
         throw new TypeError("Undefined object values are not supported.");
       }
-      normalized[key] = normalize(item, ancestors);
+      normalized[key] = normalize(item, ancestors, depth + 1);
     }
     return normalized;
   } finally {

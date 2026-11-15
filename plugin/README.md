@@ -32,7 +32,7 @@ Or try it for one session: `claude --plugin-dir ./plugin`.
 
 ## Quick start
 
-1. `/receipt-init` creates `receipts.contract.json`. Edit it yourself; the agent is blocked from changing it.
+1. `/receipt-init` creates `receipts.contract.json` from your project's own files: it finds your test, lint, type-check, and build commands (npm, pnpm, yarn, bun, Python with pytest/ruff/mypy, Rust, Go, or a Makefile `test` target), pre-approves them, and limits writes to the source, test, and docs folders that exist. Root files such as `package.json` and CI config stay out of scope, so the agent cannot change what the checks run. If nothing is recognised, a placeholder check fails on purpose until you replace it. Set the goal and review the scope yourself; the agent is blocked from changing the file. `/receipt-validate` confirms it is valid and names the exact field to fix if not.
 
    ```json
    {
@@ -52,8 +52,38 @@ Or try it for one session: `claude --plugin-dir ./plugin`.
 4. Run `/receipt-pr` for a ready-to-paste pull request summary (verdict, checks, scope), and attach `receipt.html` to the PR or send it to a client. Receipts are signed with a key that is created on first use in `~/.work-receipts/`, outside every project and blocked from the agent. Run `node plugin/bin/cli.js key` to see your fingerprint, and publish it. Anyone can check a receipt:
 
    ```bash
-   node plugin/bin/cli.js verify receipt.html --expect-key <your fingerprint>
+   node plugin/bin/cli.js verify receipt.html --expect-key <your fingerprint> --tree HEAD
    ```
+
+   `--tree <commit>` confirms the commit contains exactly the code the checks ran against. Add `--require-verified` to fail on any other verdict.
+
+## Bound to the exact code, gated in CI
+
+Every receipt names the code its checks ran against by its git tree hash: the content `git add -A` would commit, excluding gitignored files and the `.receipts` folder. The hash is refused, and the receipt says why, when it would not name the bytes the checks read: `.gitattributes` rules that rewrite content (`ident`, `filter`, `working-tree-encoding`), a project that is a subfolder of its repository, or a submodule with uncommitted changes. Line-ending normalisation is accepted, because a commit applies it identically. If a check rewrites files while running (for example, a linter with `--fix`), the receipt is **Unverified**, because the code that passed is no longer the code that remains.
+
+Because `.receipts` is excluded, a receipt can be committed inside the pull request it describes:
+
+```bash
+git add -A && git add -f .receipts/sessions/<session>/receipt.json && git commit
+```
+
+The [Work Receipts gate](../action.yml) then fails the pull request unless a receipt signed by a key you trust is consistent, verified, and covers exactly the head commit's code. It reads receipts from the commit's git objects, never from the working directory, and fails if `.receipts` holds anything other than receipt artifacts, since that folder is outside the receipted code. A single edit after the receipt was generated fails the gate. Copy [the example workflow](examples/work-receipts-gate.yml), or run the same check anywhere:
+
+```bash
+node plugin/bin/cli.js ci --expect-key <fingerprint>[,<fingerprint>] --tree <commit>
+```
+
+## Standard attestations
+
+Signed receipts also write `receipt.intoto.json`: an [in-toto Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md) in a [DSSE](https://github.com/secure-systems-lab/dsse/blob/master/protocol.md) envelope, signed with the same Ed25519 key. Its subject is the git tree (`gitTree` digest); its predicate carries the verdict, check results, scope findings, authorship counts, and the digest of the full evidence bundle. Other in-toto tooling can parse it, and the signature was checked independently with OpenSSL.
+
+```bash
+node plugin/bin/cli.js verify-attestation receipt.intoto.json --expect-key <fingerprint> --tree HEAD
+```
+
+## Authorship
+
+Each receipt reports how many of the lines added during the session were written by agent file tools and how many came from elsewhere: shell commands, formatters, code generators, or a person. The hook keeps keyed digests of the lines the agent wrote (HMAC-SHA-256 with a per-session key derived from a secret in `~/.work-receipts/`, which the agent cannot read) in a private file next to the session log. The chained log records only a hash of each digest list, so that file cannot be padded, and the digests never enter a receipt. Receipts carry counts only. Generic lines such as `}` are excluded from both counts.
 
 ## Verdicts
 
@@ -62,14 +92,14 @@ Or try it for one session: `claude --plugin-dir ./plugin`.
 | **Verified** | The log is intact, every changed file is in scope, and every check passed. |
 | **Out of scope** | Git shows a file outside the write scope changed, by any means. |
 | **Checks failed** | At least one acceptance check failed or timed out. |
-| **Unverified** | No contract, no checks, no git evidence, or a root-level executable changed that could fake a check. |
+| **Unverified** | No contract, no checks, no git evidence, a root-level executable changed that could fake a check, or a check changed files while running. |
 | **Log integrity failure** | A recorded event was edited after it was written. |
 
 Changes to files that define what the checks run (package.json, lockfiles, test configs) are flagged for human review on every receipt.
 
 ## Proven under attack
 
-An adversarial benchmark replays 26 scripted sessions against the shipped plugin, assuming the worst case that every approval prompt is clicked through. Current result: **19/19 scope attacks stopped** (14 prevented before running, the rest caught by the receipt), **0** relying only on a human, **0** known gaps, and **4/4** legitimate sessions verified with zero interruptions. Full results: [docs/BENCHMARK.md](../docs/BENCHMARK.md). Re-run with `npm run bench`.
+An adversarial benchmark replays 30 scripted sessions against the shipped plugin, assuming the worst case that every approval prompt is clicked through. Current result: **22/22 attacks stopped** (15 prevented before running, the rest caught by the receipt or the pull-request gate), **0** relying only on a human, **0** known gaps, and **5/5** legitimate sessions verified with zero interruptions, including one whose commit passes the gate. Full results: [docs/BENCHMARK.md](../docs/BENCHMARK.md). Re-run with `npm run bench`.
 
 ## What is enforced
 

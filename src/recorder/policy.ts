@@ -63,6 +63,11 @@ const DANGEROUS_COMMANDS: { pattern: RegExp; reason: string }[] = [
   },
   { pattern: /(^|[\s;&|(])(iex|invoke-expression)(\s|$|\()/i, reason: "Evaluating strings as PowerShell code is not permitted." },
   {
+    // git's --output writes anywhere, including outside the project where no receipt can see it.
+    pattern: /(^|[\s;&|(])git(\.exe)?\s[^\n]*\s--output(=|\s|$)/i,
+    reason: "git --output writes files outside the scope checks; run it yourself if you need it.",
+  },
+  {
     pattern: /\brm\s+(-[a-z]*\s+)*-[a-z]*r[a-z]*\s+(-[a-z]*\s+)*("|')?(\/|~|\$home|\*)("|')?(\s|$|[);&|`])/i,
     reason: "Recursively deleting the filesystem root, home directory, or everything in the current directory is not permitted.",
   },
@@ -71,6 +76,19 @@ const DANGEROUS_COMMANDS: { pattern: RegExp; reason: string }[] = [
     reason: "Recursively deleting a drive root or home directory is not permitted.",
   },
 ];
+
+/**
+ * Options that turn a read-only command into one that writes files or runs
+ * other programs. A wildcard allow-list entry such as `git diff*` must never
+ * pre-approve them: `git diff --output=<file>` truncates any file.
+ */
+const SIDE_EFFECT_OPTION = /(^|\s)(--output|--output-directory|--ext-diff|--textconv|--upload-pack|--receive-pack|--exec|--exec-path|--config|--config-env|--git-dir|--work-tree|--namespace|--open-files-in-pager|-c|-C|-O)(=|\s|$)|(^|\s)-o\S*/;
+const GIT_COMMAND = /^\s*git(\.exe)?\s/i;
+
+export function hasSideEffectOption(command: string): boolean {
+  if (/(^|\s)--output(=|\s|$)/.test(command)) return true;
+  return GIT_COMMAND.test(command) && SIDE_EFFECT_OPTION.test(command);
+}
 
 export function dangerousCommandReason(command: string): string | null {
   return DANGEROUS_COMMANDS.find((rule) => rule.pattern.test(command))?.reason ?? null;
@@ -115,6 +133,10 @@ export function evaluateInvariants(action: ObservedAction): SessionPolicyResult 
   }
   if (action.category === "write" && anyMatch(action, RECORDER_OWNED)) {
     return decide("deny", "The receipt log and session contract cannot be modified by the agent.");
+  }
+  // .git/config can define filters and hooks that git runs, including while a receipt is generated.
+  if (action.category === "write" && anyMatch(action, [".git", ".git/**", "**/.git", "**/.git/**"])) {
+    return decide("deny", "Files inside a .git folder cannot be written by file tools.");
   }
   if (action.category === "shell" && action.command && touchesRecorderFiles(action.command)) {
     return decide("deny", "Shell commands may not reference the receipt log or session contract.");
@@ -170,14 +192,17 @@ export function evaluateSessionAction(
         return decide("deny", "Shell commands may not reference files protected by the session contract.");
       }
       const composable = SHELL_COMPOSITION.test(command);
-      if (!composable && commandMatches(command, contract.shell.allow)) {
+      const sideEffect = hasSideEffectOption(command);
+      if (!composable && !sideEffect && commandMatches(command, contract.shell.allow)) {
         return decide("allow", "Command matches the contract's shell allow list.");
       }
       return decide(
         contract.shell.otherwise,
         composable
           ? "Commands with chaining, substitution, grouping, quoting, or wildcard characters always fall back to the contract default."
-          : "Command is not on the contract's shell allow list.",
+          : sideEffect
+            ? "Options that write files or run other programs (such as --output or -c) are never pre-approved."
+            : "Command is not on the contract's shell allow list.",
       );
     }
 

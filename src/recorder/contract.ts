@@ -65,6 +65,73 @@ export type ContractLoadResult =
   | { status: "invalid"; message: string }
   | { status: "loaded"; contract: SessionContract; raw: unknown };
 
+type Issue = {
+  path: PropertyKey[];
+  message: string;
+  code?: string;
+  keys?: string[];
+  expected?: unknown;
+  origin?: unknown;
+  minimum?: unknown;
+  maximum?: unknown;
+  values?: unknown[];
+};
+
+/** A field name reduced to identifier characters, at most 40 of them. */
+function safeName(key: unknown): string {
+  const cleaned = String(key).replace(/[^A-Za-z0-9_.-]/g, "?").slice(0, 40);
+  return cleaned || "?";
+}
+
+const MAX_ISSUE_TEXT = 600;
+
+/** zod/mini ships no messages ("Invalid input"), so explain from the issue code and schema limits only. */
+function explain(issue: Issue): string {
+  const count = (n: unknown, one: string, many: string) => String(n) + " " + (n === 1 ? one : many);
+  switch (issue.code) {
+    case "unrecognized_keys": {
+      // Key names are chosen by whoever wrote the file and reach the model's context: keep them short and inert.
+      const keys = issue.keys ?? [];
+      const shown = keys.slice(0, 3).map(safeName).join(", ");
+      return "unknown field" + (keys.length > 1 ? "s " : " ") + shown + (keys.length > 3 ? " (+" + (keys.length - 3) + " more)" : "");
+    }
+    case "invalid_type":
+      return "expected " + String(issue.expected);
+    case "too_small":
+      return issue.origin === "array" ? "needs at least " + count(issue.minimum, "entry", "entries")
+        : issue.origin === "string" ? (issue.minimum === 1 ? "must not be empty" : "must be at least " + count(issue.minimum, "character", "characters"))
+        : "must be at least " + String(issue.minimum);
+    case "too_big":
+      return issue.origin === "array" ? "allows at most " + count(issue.maximum, "entry", "entries")
+        : issue.origin === "string" ? "must be at most " + count(issue.maximum, "character", "characters")
+        : "must be at most " + String(issue.maximum);
+    case "invalid_format":
+      return "has an invalid format (check ids use lowercase letters, digits, and hyphens)";
+    case "invalid_value":
+      return "must be one of " + (issue.values ?? []).map((value) => JSON.stringify(value)).join(", ");
+    default:
+      return issue.message.slice(0, 120);
+  }
+}
+
+/**
+ * Names the fields a human must fix, e.g. `checks[0].id`. Only field names and
+ * the validator's fixed messages are included, never contract values, because
+ * this text reaches the model's context and every receipt.
+ */
+export function describeIssues(issues: readonly Issue[], limit = 4): string {
+  const parts = issues.slice(0, limit).map((issue) => {
+    const where = issue.path.reduce<string>(
+      (acc, key) => (typeof key === "number" ? acc + "[" + key + "]" : acc ? acc + "." + safeName(key) : safeName(key)),
+      "",
+    );
+    return (where || "(top level)") + ": " + explain(issue);
+  });
+  const more = issues.length > limit ? " (+" + (issues.length - limit) + " more)" : "";
+  const text = parts.join("; ") + more + ".";
+  return text.length > MAX_ISSUE_TEXT ? text.slice(0, MAX_ISSUE_TEXT) + "…" : text;
+}
+
 export function loadContract(projectDir: string): ContractLoadResult {
   const path = join(projectDir, CONTRACT_FILE);
   if (!existsSync(path)) return { status: "absent" };
@@ -72,7 +139,7 @@ export function loadContract(projectDir: string): ContractLoadResult {
     const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
     const parsed = SessionContractSchema.safeParse(raw);
     if (!parsed.success) {
-      return { status: "invalid", message: CONTRACT_FILE + " failed schema validation." };
+      return { status: "invalid", message: CONTRACT_FILE + " failed schema validation: " + describeIssues(parsed.error.issues) };
     }
     return { status: "loaded", contract: parsed.data, raw };
   } catch {
@@ -87,7 +154,8 @@ export const STARTER_CONTRACT = {
   protect: DEFAULT_PROTECT,
   shell: {
     // Read-only commands, so routine exploration does not need approval.
-    allow: ["npm test", "npm run typecheck", "npm run build", "ls", "ls *", "pwd", "git status", "git diff*", "git log*"],
+    // Exact commands: `git diff*` would also match `git diff --output=<file>`, which overwrites files.
+    allow: ["npm test", "npm run typecheck", "npm run build", "ls", "pwd", "git status", "git diff", "git diff --stat", "git log --oneline"],
     otherwise: "ask",
   },
   web: "allow",

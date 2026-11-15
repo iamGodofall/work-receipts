@@ -46,9 +46,20 @@ export function createBundle(receipt: SessionReceipt, events: unknown[]): Receip
  * the recorded check results and git observations were truthful.
  */
 export function verifyBundle(input: unknown): BundleVerification {
+  // Bundles come from untrusted hands; malformed ones are inconsistent, never a crash.
+  try {
+    return verifyBundleUnsafe(input);
+  } catch {
+    return { consistent: false, verdict: null, problems: ["The bundle is malformed and could not be checked."], signature: { status: "unsigned" } };
+  }
+}
+
+function verifyBundleUnsafe(input: unknown): BundleVerification {
   const problems: string[] = [];
   const bundle = input as Partial<ReceiptBundle> | null;
-  if (!bundle || bundle.kind !== "work-receipt-bundle" || !bundle.receipt || !Array.isArray(bundle.events)) {
+  if (!bundle || bundle.kind !== "work-receipt-bundle" || !bundle.receipt || typeof bundle.receipt !== "object" ||
+      !Array.isArray(bundle.events) || !bundle.receipt.workingTree || typeof bundle.receipt.workingTree !== "object" ||
+      !Array.isArray(bundle.receipt.filesChanged)) {
     return { consistent: false, verdict: null, problems: ["Not a work receipt bundle."], signature: { status: "unsigned" } };
   }
   const { receipt, events } = bundle as ReceiptBundle;
@@ -91,6 +102,8 @@ export function verifyBundle(input: unknown): BundleVerification {
     checks: receipt.checks,
     gitChanges,
     hashFile: (path) => recordedHashes.get(path) ?? null,
+    code: receipt.code,
+    attribution: receipt.attribution,
     now: new Date(receipt.generatedAt),
   });
 
@@ -106,4 +119,25 @@ export function verifyBundle(input: unknown): BundleVerification {
   if (signature.status === "invalid") problems.push("Signature: " + signature.reason);
 
   return { consistent: problems.length === 0, verdict: recomputed.verdict, problems, signature };
+}
+
+export type TreeMatch =
+  | { status: "match"; tree: string }
+  | { status: "mismatch"; receiptTree: string; actualTree: string }
+  | { status: "unknown"; reason: string };
+
+/**
+ * Compare the code a receipt covers with the tree of a commit. Pure: the caller
+ * resolves the commit's tree (excluding `.receipts`) with git.
+ */
+export function matchTree(receipt: SessionReceipt, actualTree: string | null): TreeMatch {
+  const code = receipt.code as SessionReceipt["code"] | undefined;
+  if (!code || !code.available || typeof code.tree !== "string") {
+    return { status: "unknown", reason: "The receipt does not identify the code it covers." };
+  }
+  if (code.tree !== code.treeAfterChecks) {
+    return { status: "unknown", reason: "The checks changed the code while running, so no single tree is the checked code." };
+  }
+  if (!actualTree) return { status: "unknown", reason: "The commit could not be resolved in this repository." };
+  return code.tree === actualTree ? { status: "match", tree: actualTree } : { status: "mismatch", receiptTree: code.tree, actualTree };
 }

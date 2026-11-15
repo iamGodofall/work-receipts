@@ -1,5 +1,6 @@
 import type { ReceiptBundle } from "./bundle";
 import type { Verdict } from "./receipt";
+import { describeAttribution } from "./attribution";
 
 const HEADLINE: Record<Verdict, string> = {
   verified: "✅ **Verified**",
@@ -11,7 +12,10 @@ const HEADLINE: Record<Verdict, string> = {
 
 /** Escape text for a Markdown table cell or inline span. */
 function md(value: string): string {
-  return value.replace(/[|`*_[\]<>]/g, (char) => "\\" + char).replace(/\r?\n/g, " ");
+  // Escape backslashes too, or `\|` would turn back into a live table delimiter.
+  return value
+    .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ")
+    .replace(/[\\|`*_[\]<>]/g, (char) => "\\" + char);
 }
 
 function codeSpan(value: string): string {
@@ -54,6 +58,11 @@ export function renderPrSummary(bundle: ReceiptBundle): string {
     }
   }
 
+  if (receipt.attribution?.available && receipt.attribution.agentLines + receipt.attribution.otherLines > 0) {
+    lines.push("");
+    lines.push("**Authorship:** " + md(describeAttribution(receipt.attribution)));
+  }
+
   if (receipt.workingTree.available && receipt.workingTree.outOfScope.length) {
     const shown = receipt.workingTree.outOfScope.slice(0, 8).map(codeSpan).join(", ");
     const more = receipt.workingTree.outOfScope.length > 8 ? " and " + (receipt.workingTree.outOfScope.length - 8) + " more" : "";
@@ -69,7 +78,8 @@ export function renderPrSummary(bundle: ReceiptBundle): string {
   lines.push(
     "<sub>Session " + codeSpan(receipt.sessionId) + " · event log " + (receipt.chain.valid ? "intact" : "FAILED") + " · " +
     (bundle.signature ? "signed by " + codeSpan(bundle.signature.fingerprint) : "unsigned") +
-    " · verify the attached receipt.html with " + codeSpan("node plugin/bin/cli.js verify receipt.html") +
+    (receipt.code?.available ? " · code tree " + codeSpan(receipt.code.tree.slice(0, 12)) : "") +
+    " · verify with " + codeSpan("node plugin/bin/cli.js verify receipt.html --tree HEAD") +
     " · Work Receipts by Enock Labs</sub>",
   );
   return lines.join("\n") + "\n";

@@ -44,11 +44,14 @@ function stringField(input: Record<string, unknown>, key: string): string | unde
  * Detect path spellings that Windows (and some other filesystems) treat as a
  * different name for the same file, so lexical glob checks would not apply.
  */
-export function aliasingReason(rawPath: string): string | undefined {
+export function aliasingReason(rawPath: string, insideProject?: string): string | undefined {
   if (/^(\\\\|\/\/)[?.][\\/]/.test(rawPath)) return "device or long-path prefix";
   const withoutDrive = rawPath.replace(/^[A-Za-z]:/, "");
   if (withoutDrive.includes(":")) return "alternate data stream";
-  const segments = rawPath.split(/[\\/]+/).filter((segment) => segment.length > 0);
+  // Only the part under the project can alias a file the contract governs. The
+  // project folder itself may legitimately sit under a short name such as
+  // C:\Users\RUNNER~1 (GitHub's Windows runners, long user names).
+  const segments = (insideProject ?? rawPath).split(/[\\/]+/).filter((segment) => segment.length > 0);
   for (const segment of segments) {
     if (segment === "." || segment === "..") continue;
     if (/[. ]$/.test(segment)) return "trailing dot or space";
@@ -120,7 +123,7 @@ export function classifyToolCall(
       .map((key) => stringField(toolInput, key))
       .filter((value): value is string => value !== undefined && value !== raw);
     const { path, outside, realPath } = toProjectPath(projectDir, raw);
-    const suspicious = otherPaths.length > 0 ? "conflicting path parameters" : aliasingReason(raw);
+    const suspicious = otherPaths.length > 0 ? "conflicting path parameters" : aliasingReason(raw, outside ? undefined : path);
     return {
       category: isWrite ? "write" : "read",
       actionKind: isWrite ? "write" : "read",

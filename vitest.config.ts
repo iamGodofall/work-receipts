@@ -6,5 +6,7 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "app/**/*.test.ts"],
     environment: "node",
+    // Recorder tests spawn real git processes, which are slow on Windows runners.
+    testTimeout: 30_000,
   },
 });

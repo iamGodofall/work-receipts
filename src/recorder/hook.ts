@@ -1,12 +1,13 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { sha256Object } from "../core/integrity";
+import { loadOrCreateAttributionKey, recordAgentLines, sessionAttributionKey, writtenText } from "./attribution";
 import { classifyToolCall } from "./classify";
 import { CONTRACT_FILE, loadContract } from "./contract";
 import { captureBaseline, searchableFiles } from "./git";
 import { matchesPatternList } from "./glob";
 import { evaluateSessionAction, evaluateWithInvalidContract, type SessionPolicyResult } from "./policy";
-import { appendEvent, redactPreview, type NewEvent } from "./store";
+import { appendEvent, redactPreview, safeSessionId, sessionDir, type NewEvent } from "./store";
 
 type HookInput = {
   session_id?: unknown;
@@ -142,6 +143,7 @@ export function handleHook(mode: HookMode, input: HookInput, env: Record<string,
         category: action.category,
         ...(toolUseId ? { toolUseId } : {}),
         ...(mode === "post" ? { outputDigest: sha256Object(input.tool_response ?? null) } : {}),
+        ...(mode === "post" && action.category === "write" ? agentLineDigests(projectDir, sessionId, toolName, toolInput, env) : {}),
       },
     }, baseline);
     return null;
@@ -218,6 +220,27 @@ export function main(argv: string[]): void {
     if (mode === "pre") {
       process.stdout.write(JSON.stringify(output("deny", "Recorder failure (" + message + ").")));
     }
+  }
+}
+
+/**
+ * Keyed digests of the lines a file tool wrote go to the private sidecar; the
+ * event gets only their count and list hash. Never blocks recording.
+ */
+function agentLineDigests(
+  projectDir: string,
+  sessionId: string,
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  env: Record<string, string | undefined>,
+): { lineDigestCount?: number; lineDigestsHash?: string } {
+  const text = writtenText(toolName, toolInput);
+  if (!text) return {};
+  try {
+    const key = sessionAttributionKey(loadOrCreateAttributionKey(env), safeSessionId(sessionId));
+    return recordAgentLines(sessionDir(projectDir, sessionId), key, text);
+  } catch {
+    return {};
   }
 }
 

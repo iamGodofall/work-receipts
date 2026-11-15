@@ -1,0 +1,35 @@
+name: Work Receipts gate
+description: Fail a pull request unless a receipt signed by a trusted key proves its acceptance checks ran against exactly this commit's code.
+author: Enock Labs
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  trusted-keys:
+    description: Comma-separated receipt key fingerprints you trust (from `node plugin/bin/cli.js key`).
+    required: true
+  revision:
+    description: Commit to check. Defaults to the pull request head, or the pushed commit.
+    required: false
+    default: ""
+  allow-unverified:
+    description: Set to "true" to accept receipts whose verdict is not verified (the code must still match).
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Verify Work Receipt for this commit
+      shell: bash
+      env:
+        WR_KEYS: ${{ inputs.trusted-keys }}
+        WR_REVISION: ${{ inputs.revision || github.event.pull_request.head.sha || github.sha }}
+        WR_ALLOW_UNVERIFIED: ${{ inputs.allow-unverified }}
+        WR_CLI: ${{ github.action_path }}/plugin/bin/cli.js
+      run: |
+        set -euo pipefail
+        args=(ci --expect-key "$WR_KEYS" --tree "$WR_REVISION")
+        if [ "$WR_ALLOW_UNVERIFIED" = "true" ]; then args+=(--allow-unverified); fi
+        node "$WR_CLI" "${args[@]}"

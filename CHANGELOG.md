@@ -1,6 +1,31 @@
 # Changelog
 
-## Work Receipts 0.1.0 (unreleased)
+## Work Receipts 0.2.0 (unreleased)
+
+Receipts are now bound to the exact code they cover, can gate pull requests, and export standard attestations. Receipt computation changed, so the recorder version is 0.2.0; 0.1.0 receipts are reported as needing regeneration, never as tampered.
+
+- Code identity: every receipt records the git tree hash of the code its checks ran against (the content `git add -A` would commit, excluding gitignored files and `.receipts`), computed with a throwaway index so the real index and working tree are untouched.
+- Checks that change files while running make the receipt Unverified, because the code that passed is no longer the code that remains.
+- `verify --tree <commit>` confirms a commit contains exactly the receipted code; `--require-verified` fails on any other verdict.
+- Pull-request gate: `cli.js ci --expect-key <fingerprints> --tree <commit>` and a composite GitHub Action (`action.yml`) pass only when a receipt signed by a trusted key is consistent, verified, and covers the head commit's code. Receipts can be committed inside the pull request they describe. Writes a job summary on GitHub.
+- Standard attestations: signed receipts also write `receipt.intoto.json`, an in-toto Statement v1 (subject: `gitTree` digest) in a DSSE envelope signed with the receipt key; `verify-attestation` checks it. The signature was verified independently with OpenSSL.
+- Authorship: receipts report how many added lines agent file tools wrote versus other sources. The hook keeps keyed line digests (per-session key) in a private sidecar that never enters a receipt; the chained log records only a hash of each digest list. Receipts carry counts only.
+- Code identity and authorship appear in the Markdown, HTML, and pull request summaries.
+- End to end through the shipped plugin: receipt verified, bound to the tree, 100% authorship attributed, gate passed, and the gate failed after a single edit made once the receipt existed.
+
+Hardening from an adversarial review of this release (4 high, 9 medium, 11 low findings; every high and medium fixed, each with a regression test in `review-2026-11.test.ts`, `ci-gate.test.ts`, or `attribution.test.ts`):
+
+- A forged baseline head could inject `--output` into `git diff`, making an out-of-scope session report as verified and truncating a file. Baselines are now validated, only full commit ids reach git, and options are terminated.
+- The gate read receipts from the working directory. It now reads them from the commit's git objects.
+- Malformed receipts could crash the gate. Each is now assessed in isolation, canonical JSON refuses nesting deeper than 64 levels, and the total receipt size is capped.
+- Wildcard allow-list entries such as `git diff*` pre-approved `git diff --output=<file>`. Starter and proposed allow lists are now exact commands, side-effect options never match an allow-list entry, and `git … --output` is always denied.
+- Code identity is refused when the tree hash would not name the bytes the checks read: content-rewriting `.gitattributes`, a project in a repository subfolder, or a dirty submodule. Rename detection no longer hides deletions from out-of-scope folders.
+- The gate fails when `.receipts` holds anything other than receipt artifacts. Line digests no longer appear in shareable receipts, and keys are per session. A trailing `--tree` with no value is now an error, unpinned attestations exit 3, contract error text is bounded and sanitised, file tools cannot write into `.git`, and summary text escapes backslashes and control characters.
+- Benchmark: 22/22 attacks stopped (three new: `--output` truncation, editing code after the receipt, hiding code under `.receipts`), 0 relying only on a human, and 5/5 benign sessions verified, including a commit that passes the gate.
+
+Known and accepted: computing a code identity leaves unreachable blobs in the object store until git's normal garbage collection.
+
+## Work Receipts 0.1.0
 
 First release candidate of the Claude Code plugin.
 
@@ -23,6 +48,8 @@ First release candidate of the Claude Code plugin.
 - Shell policy denies commands naming protected files, download-and-execute, string evaluation, and root or home wipes; unrecognised tools carrying a command get the shell policy.
 - Pull request summaries: every receipt writes receipt.pr.md, and /receipt-pr prints a paste-ready verdict block.
 - Shareable receipt redesigned: dark brand theme, animated verdict stamp, floating mascot, staggered timeline; still script-free and self-contained.
+- Project-aware `/receipt-init`: proposes acceptance checks, pre-approved commands, and write scope from the project's own toolchain (npm, pnpm, yarn, bun, Python, Rust, Go, Makefile) instead of an npm default that fails elsewhere. Skips npm's placeholder test script; with no recognised checks it writes a placeholder that fails on purpose, so an unconfigured contract can never verify.
+- `/receipt-validate` and `cli.js validate`: invalid contracts now name each failing field (for example `checks[0].id`) without echoing contract values, and placeholder goals or checks are flagged.
 - Hook overhead cut 58% (48 ms to 20 ms per call; bundle 476 KB to 44 KB) by moving hook-path validation to zod/mini.
 
 Validated in a live Claude Code session on 2026-10-30: hooks fired, scope context was honoured, and git verification caught out-of-scope files written by a third-party hook.
