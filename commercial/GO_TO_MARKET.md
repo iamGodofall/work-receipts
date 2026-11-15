@@ -39,12 +39,16 @@ Follow-on revenue:
 
 ## Evidence to use
 
-- The repository's documented adversarial benchmark: 19/19 scripted scope attacks stopped and 4/4 legitimate sessions verified in the recorded benchmark.
-- Shareable HTML, Markdown and JSON receipt outputs.
-- Independent receipt verification command.
-- Security policy and documented limitations.
+Updated 2026-11-15 for release 0.2.0:
 
-Do not claim the plugin has been validated in a live customer environment. The main project README records that a live Claude Code session test had not yet been completed at the time of that status statement. Before making a live-deployment claim, run and record a fresh end-to-end test on the supported host versions.
+- Adversarial benchmark: 22/22 scripted attacks stopped, 0 relying only on a human approval, 5/5 legitimate sessions verified (docs/BENCHMARK.md).
+- Receipts are bound to the exact code by git tree hash, and the pull-request gate is proven on real GitHub pull requests: https://github.com/iamGodofall/work-receipts-demo/pulls?q=is%3Apr (one passes; one, edited after its receipt, is blocked).
+- Standard in-toto/DSSE attestations, independently verified with OpenSSL.
+- An independent adversarial security review: 4 high and 9 medium findings, all fixed with regression tests.
+- Live validation in Claude Code 2.1.314 sessions (Windows) with an in-scope task plus deliberate violations; install, enforcement and uninstall verified on Linux with Claude Code 2.1.325. CI green on Ubuntu, Windows and macOS.
+- Shareable HTML, Markdown and JSON receipts; independent verification command; security policy and documented limitations.
+
+Still true: no live customer environment yet. Say "validated in our own live Claude Code sessions and public CI", not "used by customers".
 
 ## Qualification questions
 
@@ -86,8 +90,11 @@ Would a one-repository evaluation be relevant to your engineering workflow?
 
 ## Release gate before public promotion
 
-- Run the plugin end-to-end inside a real Claude Code session.
-- Verify install and uninstall on supported Windows and Linux environments.
-- Re-run the adversarial benchmark and preserve raw output.
-- Confirm package and marketplace metadata, licence, support route and security disclosure process.
-- Review every public claim against current repository evidence.
+Status on 2026-11-15 (release 0.2.0):
+
+- [x] Run the plugin end-to-end inside a real Claude Code session (two sessions; `/receipt` inside Claude Code produced a verified receipt).
+- [x] Verify install and uninstall on supported Windows and Linux environments (from GitHub, isolated configs).
+- [x] Re-run the adversarial benchmark and preserve raw output (docs/BENCHMARK.md).
+- [x] Confirm package and marketplace metadata (`claude plugin validate` passes with no warnings), licence, and security disclosure process (SECURITY.md).
+- [ ] Support route: publish a contact address for licences and pilots in the README.
+- [x] Review every public claim against current repository evidence (this document updated accordingly).
