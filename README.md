@@ -10,6 +10,10 @@ Work Receipts is a Claude Code plugin. You write a short contract: the goal, whi
 
 [Open the canonical HTML example receipt](docs/receipt-example.html). The HTML example is kept current with the verified mascot artwork.
 
+## Security model
+
+Read the [Work Receipts threat model](docs/THREAT-MODEL.md) before relying on receipts for security assurance. Work Receipts enforces policy through supported Claude Code hooks and verifies changes against Git evidence. It is not an OS-level sandbox, remote signing service, external log anchor, proof of human approval identity, or certification of the resulting software.
+
 ## Why
 
 Agents report success. Reviewers need proof. A Work Receipt answers four questions in one shareable file:
