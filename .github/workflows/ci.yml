@@ -35,7 +35,10 @@ jobs:
           const report = require('./npm-audit.json');
           const counts = report.metadata?.vulnerabilities ?? {};
           console.log('Dependency audit summary:', JSON.stringify(counts));
-          for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+          if (!report.metadata || !report.vulnerabilities) {
+            throw new Error('npm audit did not return a valid report');
+          }
+          for (const [name, item] of Object.entries(report.vulnerabilities)) {
             console.log(JSON.stringify({
               name,
               severity: item.severity,
@@ -44,6 +47,10 @@ jobs:
               fixAvailable: item.fixAvailable,
               via: (item.via ?? []).map((entry) => typeof entry === 'string' ? entry : entry.title)
             }));
+          }
+          if (Number(counts.total ?? 0) > 0) {
+            console.error(`npm audit found ${counts.total} known vulnerability finding(s). Resolve them or document an explicit, time-bounded exception before release.`);
+            process.exitCode = 1;
           }
           NODE
       - name: Upload dependency audit report
