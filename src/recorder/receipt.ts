@@ -29,7 +29,7 @@ export type ContractInfo =
   | { status: "loaded"; contract: SessionContract };
 
 /** Bump whenever receipt computation changes, so older receipts are never misread as tampered. */
-export const RECORDER_VERSION = "0.2.0";
+export const RECORDER_VERSION = "0.2.2";
 
 export type Verdict = "verified" | "checks_failed" | "out_of_scope" | "unverified" | "tampered";
 
@@ -353,6 +353,21 @@ export function baselineFromEvents(events: unknown[]): GitBaseline | null {
     if (baseline.git === false) return { git: false };
     if (baseline.git !== true || typeof baseline.truncated !== "boolean" || !Array.isArray(baseline.dirty)) return null;
     if (baseline.head !== null && !(typeof baseline.head === "string" && COMMIT_ID.test(baseline.head))) return null;
+
+    if (baseline.fingerprintVersion === 2) {
+      const dirty: { path: string; fingerprint: string | null }[] = [];
+      for (const entry of baseline.dirty as unknown[]) {
+        const item = entry as { path?: unknown; fingerprint?: unknown } | null;
+        if (!item || !SAFE_RELATIVE_PATH(item.path)) return null;
+        if (item.fingerprint !== null && !(typeof item.fingerprint === "string" && /^[0-9a-f]{64}$/.test(item.fingerprint))) return null;
+        dirty.push({ path: item.path, fingerprint: item.fingerprint });
+      }
+      return { git: true, fingerprintVersion: 2, head: baseline.head as string | null, dirty, truncated: baseline.truncated };
+    }
+
+    // Earlier receipts stored content-only SHA-256 values. Keep them readable,
+    // but compare them with the same legacy method instead of mixing formats.
+    if (baseline.fingerprintVersion !== undefined) return null;
     const dirty: { path: string; sha256: string | null }[] = [];
     for (const entry of baseline.dirty as unknown[]) {
       const item = entry as { path?: unknown; sha256?: unknown } | null;
