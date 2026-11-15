@@ -1,12 +1,14 @@
 # Work Receipts for Claude Code
 
+![The canonical Work Receipts mascot](docs/mascot/full-body.png)
+
 By Enock Labs.
 
 **Know what your agent actually did, not what it says it did.**
 
 Work Receipts is a Claude Code plugin. You write a short contract: the goal, which files may change, which commands are pre-approved, and which checks prove the work is done. The plugin enforces that scope on every tool call, records everything in a tamper-evident log, and ends the session with a receipt whose verdict comes from real checks and git, never from the model.
 
-![Example receipt](plugin/examples/receipt-example.png)
+[Open the canonical HTML example receipt](docs/receipt-example.html). The HTML example is kept current with the verified mascot artwork.
 
 ## Why
 
@@ -99,14 +101,16 @@ Each receipt reports how many of the lines added during the session were written
 
 Changes to files that define what the checks run (package.json, lockfiles, test configs) are flagged for human review on every receipt.
 
-## Proven under attack
+## Adversarial validation
 
-An adversarial benchmark replays 30 scripted sessions against the shipped plugin, assuming the worst case that every approval prompt is clicked through. Current result: **22/22 attacks stopped** (15 prevented before running, the rest caught by the receipt or the pull-request gate), **0** relying only on a human, **0** known gaps, and **5/5** legitimate sessions verified with zero interruptions, including one whose commit passes the gate. Full results: [docs/BENCHMARK.md](docs/BENCHMARK.md). Re-run with `npm run bench`.
+The latest committed benchmark report records **22/22 scripted attack scenarios prevented or caught**, with 15 prevented before execution, **2/2** in-scope destructive actions routed for approval, **5/5** benign sessions verified without interruption, and zero scenarios listed in the report's known-gap section. The harness drives the shipped hook and CLI through fresh temporary Git repositories and assumes every approval prompt is accepted when measuring whether enforcement or later verification catches an attack.
+
+These are results from a finite scripted regression suite, not a penetration test, a live-session coverage guarantee, or an external security certification. The report lists each tested scenario and outcome in [docs/BENCHMARK.md](docs/BENCHMARK.md). Run `npm run bench` to reproduce the suite. CI reruns it on Ubuntu and uploads the commit-specific report as an artifact.
 
 ## What is enforced
 
 - **Writes** through Write, Edit, MultiEdit and NotebookEdit must match `write` and must not match `protect`. Writes outside the project are denied. Junctions and symlinks are resolved, and Windows alias forms (trailing dots, alternate data streams, 8.3 names, device paths) are denied.
-- **Protected files** (`.env`, keys, certificates by default) cannot be read or written by file tools or named in shell commands, and a content search is denied if it would read one that is not gitignored.
+- **Protected files** (`.env`, keys, certificates by default) are blocked on direct file-tool access and named shell commands. Directory content searches are checked against protected paths which the search would read. Keep credentials outside project search paths and apply operating-system access controls as an additional boundary.
 - **Shell commands** run without a prompt only if they exactly match `shell.allow` and contain no chaining, substitution, grouping, quoting or wildcard characters. Everything else follows `shell.otherwise` (`ask` by default). Commands that name a protected file, download and execute code, evaluate strings as code, or wipe the root or home directory are always denied.
 - **The recorder's own files** (`.receipts/` and the contract) can never be modified by the agent, with or without a contract.
 - **Unknown tools** need approval while a contract is active.

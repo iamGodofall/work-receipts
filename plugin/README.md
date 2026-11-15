@@ -6,7 +6,7 @@ By Enock Labs.
 
 Work Receipts is a Claude Code plugin. You write a short contract: the goal, which files may change, which commands are pre-approved, and which checks prove the work is done. The plugin enforces that scope on every tool call, records everything in a tamper-evident log, and ends the session with a receipt whose verdict comes from real checks and git, never from the model.
 
-![Example receipt](examples/receipt-example.png)
+[Open the HTML example receipt](../docs/receipt-example.html).
 
 ## Why
 

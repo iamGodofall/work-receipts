@@ -14,7 +14,8 @@ main { max-width:880px; margin:0 auto; padding:34px 20px 64px; }
   background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid var(--line);
   box-shadow:0 30px 70px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); animation:rise .7s cubic-bezier(.2,.8,.2,1) both; }
 .hero::before { content:""; position:absolute; width:260px; height:260px; left:-40px; top:-60px; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%); filter:blur(20px); }
-.avatar { position:relative; flex:none; border-radius:50%; padding:10px; background:radial-gradient(circle at 40% 35%, #fff8ee, #e3d3bd); box-shadow:0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent), 0 18px 40px rgba(0,0,0,.45); animation:float 4.5s ease-in-out infinite; }
+.avatar { position:relative; flex:none; width:140px; height:140px; display:grid; place-items:center; border-radius:50%; padding:10px; background:radial-gradient(circle at 40% 35%, #fff8ee, #e3d3bd); box-shadow:0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent), 0 18px 40px rgba(0,0,0,.45); animation:float 4.5s ease-in-out infinite; }
+.avatar img { display:block; width:120px; height:120px; object-fit:contain; }
 .hero-copy { position:relative; min-width:0; }
 .verdict { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:10px; color:var(--accent); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:13px;
   border:2px solid var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); box-shadow:0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
@@ -62,7 +63,7 @@ footer { margin-top:28px; font-size:12.5px; line-height:1.6; }
 <body>
 <main>
 <div class="hero">
-<div class="avatar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Mascot looking celebrating"><path d="M57 17 C51 9 55 2 61 3 C66 4 66 9 64 12 C72 6 79 14 71 19 C67 22 62 22 57 17Z" fill="#f67a4e"/><circle cx="73" cy="6" r="2.2" fill="#5ce4dc"/><rect x="6" y="46" width="16" height="34" rx="8" fill="#1b273a"/><rect x="10" y="51" width="8" height="24" rx="4" fill="none" stroke="#ff8757" stroke-width="2.4"/><rect x="98" y="46" width="16" height="34" rx="8" fill="#1b273a"/><rect x="102" y="51" width="8" height="24" rx="4" fill="none" stroke="#ff8757" stroke-width="2.4"/><rect x="14" y="16" width="92" height="88" rx="40" fill="#202d41"/><ellipse cx="60" cy="66" rx="37" ry="31" fill="#f6e6d1"/><path d="M38 47 Q46 41 54 45 M66 45 Q74 41 82 47" fill="none" stroke="#202a3b" stroke-width="3.4" stroke-linecap="round"/><ellipse cx="46" cy="60" rx="10" ry="12.5" fill="#fffaf2" stroke="#b9ae9f" stroke-width="1.2"/><ellipse cx="46" cy="61" rx="7" ry="10.5" fill="#f39a35"/><ellipse cx="46" cy="61" rx="4.3" ry="7.5" fill="#121823"/><circle cx="43.5" cy="56" r="2.4" fill="#fff"/><ellipse cx="74" cy="60" rx="10" ry="12.5" fill="#fffaf2" stroke="#b9ae9f" stroke-width="1.2"/><ellipse cx="74" cy="61" rx="7" ry="10.5" fill="#f39a35"/><ellipse cx="74" cy="61" rx="4.3" ry="7.5" fill="#121823"/><circle cx="71.5" cy="56" r="2.4" fill="#fff"/><path d="M50 78 Q60 92 70 78 Q60 86 50 78Z" fill="#9d4a39"/><rect x="52" y="108" width="16" height="3.5" rx="1.75" fill="#5ce4dc"/></svg></div>
+<div class="avatar"><img src="../../docs/mascot/happy.png" width="120" height="120" alt="Work Receipts mascot, happy expression"></div>
 <div class="hero-copy">
 <span class="verdict">Verified</span>
 <h1>Add input validation to the signup form</h1>
