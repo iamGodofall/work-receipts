@@ -56,12 +56,12 @@ Work Receipts does not currently provide:
 - Hardware-backed or remote key custody. The local key is stored under the user's Work Receipts home directory. Hook-level restrictions are not equivalent to a hardware security boundary.
 - Independent proof of the human identity behind an approval prompt.
 - External anchoring or remote retention of the local event log. A local administrator able to replace all local state is outside the threat model.
-- Assurance for Git-ignored files, untracked data excluded from the receipted tree, file ownership, ACLs, timestamps or every filesystem side effect outside the repository.
+- Assurance for Git-ignored files, file ownership, ACLs, timestamps or every filesystem side effect outside the repository.
 - Proof that a test suite is complete, correct, uncompromised or sufficient for the software being changed.
 - General protection against malicious dependencies, compromised build hosts, malicious editor extensions, other agents or external applications acting outside observed Claude Code hooks.
 - A multi-tenant service, SSO, central policy administration or cross-agent compatibility layer.
 
-The plugin itself makes no network requests. This statement does not prevent an approved shell command, dependency, MCP server, extension or other host process from using the network.
+The plugin itself makes no network requests. This statement does not prevent an approved shell command, dependency, MCP server, extension or other host process from using the network. A user-approved command runs with the host user's privileges. Without an OS sandbox, it might reach files and services beyond the project.
 
 ## Safe deployment guidance
 
