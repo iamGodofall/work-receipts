@@ -29,6 +29,8 @@ Found by running on real infrastructure (public CI and a live Claude Code sessio
 - On macOS and Windows runners the repository-root check compared paths literally (`/var` is a symlink; `RUNNER~1` is a short name) and refused the code identity. It now compares real paths.
 - The throwaway index used for code identity had a fresh timestamp, which disabled git's racy-clean protection: a same-size edit made in the same second as the index was written could be hashed as its old content, so a receipt could name stale code. The copy now keeps the real index's timestamps. A proof branch with the fix disabled failed this test on Ubuntu and macOS CI.
 - Running `/receipt` in a new Claude Code session receipted that new, empty session and reported Verified. Receipts and pull request summaries now pick the most recent session with agent work and say which sessions they skipped.
+- A `"type": "module"` package.json in any folder above the installed plugin made Node load its CommonJS scripts as ES modules, so every hook crashed, and Claude Code treats a crashed hook as non-blocking: enforcement and recording silently stopped. The plugin now ships its own `package.json` pinning CommonJS. Found by installing from GitHub on a drive with such a file.
+- The plugin manifest now declares version 0.2.0 (it still said 0.1.0), so installed copies update.
 - Recorder tests yield to the event loop after each test, so long synchronous git work cannot trip vitest's RPC timeout on many-core machines.
 
 Validated on 2026-11-15:

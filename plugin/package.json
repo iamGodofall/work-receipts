@@ -1,0 +1,6 @@
+{
+  "name": "work-receipts-plugin",
+  "private": true,
+  "type": "commonjs",
+  "description": "Pins the plugin's scripts to CommonJS so a \"type\": \"module\" package.json in any parent folder cannot break the hooks."
+}
