@@ -17,7 +17,8 @@ main { max-width:980px; margin:0 auto; padding:28px 20px 72px; }
 a { color:var(--cyan); }
 nav { display:flex; justify-content:space-between; align-items:center; gap:16px; font-size:15px; }
 nav b { letter-spacing:.02em; } nav a { color:var(--muted); text-decoration:none; margin-left:18px; } nav a:hover { color:#fff; }
-.hero { padding:64px 0 28px; }
+.hero { padding:64px 0 28px; position:relative; }
+.hero-mascot { float:right; width:min(24vw,180px); max-height:220px; object-fit:contain; margin:2px 0 20px 24px; }
 .eyebrow { color:var(--cyan); font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:13px; }
 h1 { font-size:clamp(34px,6vw,58px); line-height:1.05; letter-spacing:-.035em; margin:12px 0 18px; color:#fff; }
 h1 em { font-style:normal; color:var(--hot); }
@@ -41,7 +42,8 @@ h2 { font-size:clamp(24px,3.4vw,32px); letter-spacing:-.02em; margin:0 0 18px; c
 ul { padding-left:20px; color:#c3cddf; } li { margin:6px 0; }
 footer { margin-top:64px; padding-top:22px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; }
 nav a { white-space:nowrap; }
-@media (max-width:560px) { nav { flex-direction:column; align-items:flex-start; gap:6px; } nav a { margin:0 14px 0 0; } .hero { padding-top:36px; } }
+@media (max-width:560px) { nav { flex-direction:column; align-items:flex-start; gap:6px; } nav a { margin:0 14px 0 0; } .hero { padding-top:36px; }
+.hero-mascot { float:none; display:block; width:132px; max-height:164px; margin:0 auto 22px; } }
 </style>
 </head>
 <body>
@@ -50,6 +52,7 @@ nav a { white-space:nowrap; }
 <span><a href="#how">How it works</a><a href="#proof">Proof</a><a href="#teams">For teams</a><a href="https://github.com/iamGodofall/work-receipts">GitHub</a></span></nav>
 
 <div class="hero">
+<img class="hero-mascot" src="mascot/full-body.png" alt="The original Work Receipts mascot, shown full body" width="180" height="220" fetchpriority="high">
 <div class="eyebrow">For teams using Claude Code</div>
 <h1>Know what your AI coding agent <em>actually did</em>, not what it says it did.</h1>
 <p class="lead">You write a short contract: which files may change, which commands are pre-approved, which checks prove the work is done. Work Receipts enforces it on every tool call and ends the session with a signed receipt whose verdict comes from real checks and git, bound to the exact code. A pull-request gate blocks anything else.</p>
