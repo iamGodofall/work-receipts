@@ -8,6 +8,7 @@ import {
   rmdirSync,
   statSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { appendAuditEvent, type AuditEvent, type AuditEventInput } from "../core/audit-chain";
 import { sha256Hex } from "../core/integrity";
@@ -164,6 +165,36 @@ export function latestSessionId(projectDir: string): string | null {
     })
     .sort((a, b) => b.mtime - a.mtime);
   return sessions[0]?.name ?? null;
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Every spelling a tool may use for one absolute path: native, forward slashes, and Git Bash (/d/...). */
+function pathSpellings(absolute: string): string[] {
+  const forward = resolve(absolute).replace(/\\/g, "/").replace(/\/+$/, "");
+  const spellings = new Set([forward, forward.replace(/\//g, "\\")]);
+  const drive = /^([A-Za-z]):\//.exec(forward);
+  if (drive) spellings.add("/" + drive[1].toLowerCase() + forward.slice(2));
+  return [...spellings].filter((spelling) => spelling.length > 3).sort((a, b) => b.length - a.length);
+}
+
+/**
+ * Receipts promise no absolute paths or user names. Replace the project
+ * directory with "." and the home directory with "~" in text that is stored in
+ * the log, in every spelling, before anything else sees it.
+ */
+export function scrubLocalPaths(text: string, projectDir: string, home: string = homedir()): string {
+  let out = text;
+  const flags = process.platform === "win32" || process.platform === "darwin" ? "gi" : "g";
+  for (const [root, replacement] of [[projectDir, "."], [home, "~"]] as const) {
+    if (!root) continue;
+    for (const spelling of pathSpellings(root)) {
+      out = out.replace(new RegExp(escapeRegExp(spelling) + "(?=[\\\\/\"'\\s]|$)", flags), replacement);
+    }
+  }
+  return out;
 }
 
 const SECRET_ASSIGNMENT = /\b([A-Za-z_]*(?:token|secret|password|passwd|api[_-]?key|authorization)[A-Za-z_]*)(\s*[=:]\s*|\s+)("[^"]*"|'[^']*'|\S+)/gi;

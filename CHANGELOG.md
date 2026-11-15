@@ -31,6 +31,8 @@ Found by running on real infrastructure (public CI and a live Claude Code sessio
 - Running `/receipt` in a new Claude Code session receipted that new, empty session and reported Verified. Receipts and pull request summaries now pick the most recent session with agent work and say which sessions they skipped.
 - A `"type": "module"` package.json in any folder above the installed plugin made Node load its CommonJS scripts as ES modules, so every hook crashed, and Claude Code treats a crashed hook as non-blocking: enforcement and recording silently stopped. The plugin now ships its own `package.json` pinning CommonJS. Found by installing from GitHub on a drive with such a file.
 - The plugin manifest now declares version 0.2.0 (it still said 0.1.0), so installed copies update.
+- Command previews and out-of-project targets kept absolute paths (for example `cd "C:/Users/<name>/project"`), although receipts promise no absolute paths or user names. The project folder is now recorded as `.` and the home folder as `~`, in native, forward-slash, and Git Bash spellings. Found reviewing a live receipt.
+- Shareable receipts overflowed on phones because long hashes and commands could not wrap; they now fit a 390 px screen. Actions that Work Receipts allowed but that never completed are labelled "allowed, never ran" with an explanation, instead of "no result".
 - Recorder tests yield to the event loop after each test, so long synchronous git work cannot trip vitest's RPC timeout on many-core machines.
 
 Validated on 2026-11-15:

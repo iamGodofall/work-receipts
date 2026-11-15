@@ -118,11 +118,12 @@ main { max-width:880px; margin:0 auto; padding:34px 20px 64px; }
 h1 { margin:12px 0 6px; font-size:clamp(22px,3.4vw,30px); line-height:1.15; letter-spacing:-.03em; color:#fff; }
 .reason { color:#c3cddf; }
 h2 { font-size:15px; margin:22px 0 12px; color:#fff; letter-spacing:-.01em; }
-.muted { color:var(--muted); } code { font:13px ui-monospace,SFMono-Regular,Consolas,monospace; color:#dfe7f5; }
+.muted { color:var(--muted); } code { font:13px ui-monospace,SFMono-Regular,Consolas,monospace; color:#dfe7f5; overflow-wrap:anywhere; word-break:break-word; }
+main, section, .hero-copy, li { min-width:0; overflow-wrap:anywhere; }
 section { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:2px 20px 14px; margin-top:16px; animation:rise .6s cubic-bezier(.2,.8,.2,1) both; }
 section:nth-of-type(1) { animation-delay:.25s } section:nth-of-type(2) { animation-delay:.32s } section:nth-of-type(3) { animation-delay:.39s }
 section:nth-of-type(4) { animation-delay:.46s } section:nth-of-type(5) { animation-delay:.53s } section:nth-of-type(n+6) { animation-delay:.6s }
-table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:9px 6px; border-bottom:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-weight:600; font-size:13px; }
+table { width:100%; border-collapse:collapse; } td,th { overflow-wrap:break-word; text-align:left; padding:9px 6px; border-bottom:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-weight:600; font-size:13px; }
 .ok { color:#34d399; font-weight:700; } .bad { color:#ff7a4d; font-weight:700; }
 .tag { font-size:12px; border:1px solid var(--line); border-radius:6px; padding:1px 7px; margin-left:4px; color:var(--muted); }
 .tag.bad { color:#ff7a4d; border-color:#ff7a4d; } .tag.warn { color:#f5b942; border-color:#f5b942; }
@@ -149,7 +150,7 @@ footer { margin-top:28px; font-size:12.5px; line-height:1.6; }
 @keyframes slide { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:none; } }
 @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
 @keyframes stamp { 0% { opacity:0; transform:scale(2.2) rotate(-14deg); } 70% { opacity:1; transform:scale(.94) rotate(-2deg); } 100% { opacity:1; transform:scale(1) rotate(-3deg); } }
-@media (max-width:560px) { .hero { flex-direction:column; text-align:center; } .tl li { grid-template-columns:1fr; } }
+@media (max-width:560px) { main { padding:20px 12px 48px; } .hero { flex-direction:column; text-align:center; padding:22px 16px; } .tl li { grid-template-columns:1fr; } .facts { grid-template-columns:repeat(2,minmax(0,1fr)); } section { padding:2px 14px 12px; } td,th { padding:8px 4px; font-size:13px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation:none !important; } }
 @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } * { animation:none !important; } }
 </style>
@@ -224,7 +225,12 @@ const STATUS_LABEL: Record<TimelineStatus, string> = {
   blocked: "blocked",
   failed: "failed",
   not_run: "did not run",
-  pending: "no result",
+  pending: "allowed, never ran",
+};
+
+/** Explains a status a reviewer cannot otherwise interpret. */
+const STATUS_HINT: Partial<Record<TimelineStatus, string>> = {
+  pending: "Work Receipts allowed this, but it never completed: Claude Code, another hook, or an interruption stopped it.",
 };
 
 function clock(iso: string): string {
@@ -239,7 +245,7 @@ function renderTimeline(entries: TimelineEntry[]): string {
     const duration = entry.durationMs !== null && entry.durationMs >= 1000 ? " · " + (Math.round(entry.durationMs / 100) / 10) + "s" : "";
     return '<li class="st-' + entry.status + '" style="--n:' + Math.min(index, 30) + '"><time>' + esc(clock(entry.at)) + '</time><span class="what">' + agent +
       "<b>" + esc(entry.tool) + "</b><code>" + esc(entry.subject) + "</code>" +
-      (entry.reason ? '<span class="why">' + esc(entry.reason) + "</span>" : "") +
+      (entry.reason || STATUS_HINT[entry.status] ? '<span class="why">' + esc(entry.reason || STATUS_HINT[entry.status]) + "</span>" : "") +
       '</span><span class="state">' + STATUS_LABEL[entry.status] + esc(duration) + "</span></li>";
   });
   const more = entries.length > TIMELINE_LIMIT

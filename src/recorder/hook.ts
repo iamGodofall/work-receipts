@@ -7,7 +7,7 @@ import { CONTRACT_FILE, loadContract } from "./contract";
 import { captureBaseline, searchableFiles } from "./git";
 import { matchesPatternList } from "./glob";
 import { evaluateSessionAction, evaluateWithInvalidContract, type SessionPolicyResult } from "./policy";
-import { appendEvent, redactPreview, safeSessionId, sessionDir, type NewEvent } from "./store";
+import { appendEvent, redactPreview, safeSessionId, scrubLocalPaths, sessionDir, type NewEvent } from "./store";
 
 type HookInput = {
   session_id?: unknown;
@@ -122,7 +122,8 @@ export function handleHook(mode: HookMode, input: HookInput, env: Record<string,
       ? ("claude-code:" + input.agent_type.replace(/[^A-Za-z0-9:_-]/g, "")).slice(0, 128)
       : "claude-code",
     actionKind: action.actionKind,
-    target: action.target.slice(0, 512),
+    // Decisions use the real paths; the stored text carries no absolute paths or user names.
+    target: scrubLocalPaths(action.target, projectDir).slice(0, 512),
     actionDigest: sha256Object({ tool: toolName, input: digestInput }),
   };
 
@@ -171,8 +172,8 @@ export function handleHook(mode: HookMode, input: HookInput, env: Record<string,
         reason: result.reason,
         contract: loaded.status,
         ...(toolUseId ? { toolUseId } : {}),
-        ...(action.realTarget ? { realTarget: action.realTarget.slice(0, 512) } : {}),
-        ...(action.command !== undefined ? { commandPreview: redactPreview(action.command) } : {}),
+        ...(action.realTarget ? { realTarget: scrubLocalPaths(action.realTarget, projectDir).slice(0, 512) } : {}),
+        ...(action.command !== undefined ? { commandPreview: redactPreview(scrubLocalPaths(action.command, projectDir)) } : {}),
       },
     }, baseline);
   } catch (error) {
