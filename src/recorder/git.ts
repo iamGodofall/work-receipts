@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { CONTRACT_FILE, RECEIPTS_DIR } from "./contract";
@@ -67,8 +67,20 @@ const SAFE_REVISION = /^[A-Za-z0-9][A-Za-z0-9._\/~^-]{0,199}$/;
 /** Attributes that make committed content differ from the bytes on disk beyond line endings. */
 const CONTENT_ALTERING_ATTRIBUTES = ["ident", "filter", "working-tree-encoding"];
 
+/**
+ * Same directory, after resolving symlinks and Windows short names: macOS
+ * temp folders live under the /var -> /private/var symlink, and GitHub's
+ * Windows runners use C:\Users\RUNNER~1 for C:\Users\runneradmin.
+ */
 function samePath(a: string, b: string): boolean {
-  const norm = (path: string) => resolve(path).replace(/[\\/]+$/, "");
+  const real = (path: string) => {
+    try {
+      return realpathSync.native(path);
+    } catch {
+      return resolve(path);
+    }
+  };
+  const norm = (path: string) => real(path).replace(/[\\/]+$/, "");
   return process.platform === "win32" || process.platform === "darwin"
     ? norm(a).toLowerCase() === norm(b).toLowerCase()
     : norm(a) === norm(b);

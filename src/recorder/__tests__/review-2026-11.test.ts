@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -99,6 +99,17 @@ describe("M1-M3: code identity is refused when a tree hash would not name the by
   it("accepts line-ending attributes, which a commit applies identically", () => {
     writeFileSync(join(repo, ".gitattributes"), "*.c text eol=lf\n");
     expect("tree" in codeTree(repo)).toBe(true);
+  });
+
+  it("accepts the repository root reached through a symlink or junction (macOS /var, Windows short names)", () => {
+    const link = join(tmpdir(), "receipts-link-" + Date.now());
+    symlinkSync(repo, link, process.platform === "win32" ? "junction" : "dir");
+    try {
+      expect(codeTree(link)).toEqual(codeTree(repo));
+      expect("tree" in codeTree(link)).toBe(true);
+    } finally {
+      rmSync(link, { force: true, recursive: false });
+    }
   });
 
   it("refuses a project that is a subfolder of its repository", () => {
