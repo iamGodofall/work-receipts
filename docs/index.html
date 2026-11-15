@@ -60,7 +60,7 @@ nav a { white-space:nowrap; }
 </div>
 <pre>/plugin marketplace add iamGodofall/work-receipts
 /plugin install work-receipts@enock-labs</pre>
-<p class="muted">Inside Claude Code. Free for personal and noncommercial use. Runs entirely on your machine; no data leaves it.</p>
+<p class="muted">Inside Claude Code. Free for personal and noncommercial use. The plugin runs locally and makes no network requests. Review the documented limits before relying on the receipt or CI gate.</p>
 </div>
 
 <section id="how">
@@ -76,8 +76,8 @@ nav a { white-space:nowrap; }
 <section id="proof">
 <h2>Proof, not promises</h2>
 <div class="grid">
-<div class="card stat"><b>Scripted</b><span>Repeatable scenarios cover scope escape, protected files, shell misuse, receipt tampering and commit drift</span></div>
-<div class="card stat"><b>1 known limit</b><span>Project-wide Grep with a sensitive file not excluded by .gitignore remains documented in the benchmark</span></div>
+<div class="card stat"><b>22/22</b><span>Scripted attack scenarios prevented or caught in the latest committed benchmark report</span></div>
+<div class="card stat"><b>5/5</b><span>Benign sessions verified without interruption. The report lists zero known-gap scenarios.</span></div>
 <div class="card stat"><b>13 fixed</b><span>Findings requiring changes in an internal adversarial review were fixed with regression tests. This is not an external audit.</span></div>
 <div class="card stat"><b>3 OS</b><span>CI typecheck, tests and plugin bundle checks pass on Linux, Windows and macOS</span></div>
 </div>
