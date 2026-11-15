@@ -101,14 +101,14 @@ Changes to files that define what the checks run (package.json, lockfiles, test 
 
 ## Adversarial validation
 
-The repository includes a repeatable benchmark that drives the shipped hook and CLI through scripted sessions in fresh temporary Git repositories. Scenarios cover out-of-scope writes, path traversal, protected files, shell misuse, recorder tampering, receipt forgery, commit drift, and ordinary in-scope work. Approval prompts are treated as approved when evaluating whether enforcement or later verification catches an attack.
+The latest committed benchmark report records **22/22 scripted attack scenarios prevented or caught**, with 15 prevented before execution, **2/2** in-scope destructive actions routed for approval, **5/5** benign sessions verified without interruption, and zero scenarios listed in the report's known-gap section. The harness drives the shipped hook and CLI through fresh temporary Git repositories and assumes every approval prompt is accepted when measuring whether enforcement or later verification catches an attack.
 
-The benchmark deliberately retains a known limitation scenario involving a project-wide Grep search and a sensitive file not excluded by `.gitignore`. Do not interpret a successful benchmark run as proof of complete secret isolation or as an external security certification. The full methodology and current limitation are documented in [docs/BENCHMARK.md](docs/BENCHMARK.md). Run `npm run bench` to reproduce the scenarios. CI publishes the generated run report as an artifact.
+These are results from a finite scripted regression suite, not a penetration test, a live-session coverage guarantee, or an external security certification. The report lists each tested scenario and outcome in [docs/BENCHMARK.md](docs/BENCHMARK.md). Run `npm run bench` to reproduce the suite. CI reruns it on Ubuntu and uploads the commit-specific report as an artifact.
 
 ## What is enforced
 
 - **Writes** through Write, Edit, MultiEdit and NotebookEdit must match `write` and must not match `protect`. Writes outside the project are denied. Junctions and symlinks are resolved, and Windows alias forms (trailing dots, alternate data streams, 8.3 names, device paths) are denied.
-- **Protected files** (`.env`, keys, certificates by default) are blocked on direct file-tool access and are checked during directory searches. The current benchmark documents a known project-wide Grep limitation when a sensitive file is not excluded by `.gitignore`. Keep secrets out of searchable project files and use OS-level secret controls as well.
+- **Protected files** (`.env`, keys, certificates by default) are blocked on direct file-tool access and named shell commands. Directory content searches are checked against protected paths which the search would read. Keep credentials outside project search paths and apply operating-system access controls as an additional boundary.
 - **Shell commands** run without a prompt only if they exactly match `shell.allow` and contain no chaining, substitution, grouping, quoting or wildcard characters. Everything else follows `shell.otherwise` (`ask` by default). Commands that name a protected file, download and execute code, evaluate strings as code, or wipe the root or home directory are always denied.
 - **The recorder's own files** (`.receipts/` and the contract) can never be modified by the agent, with or without a contract.
 - **Unknown tools** need approval while a contract is active.
